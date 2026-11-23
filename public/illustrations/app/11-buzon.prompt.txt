@@ -1,0 +1,27 @@
+# mode: edits · model: gpt-image-2 · size: 1024x1024 · quality: high · transparent: true
+# inputs: .claude/skills/regalito-ilustraciones/mascota/regalito-ref.blanco.png
+
+Create one standalone illustration for the givegifts website (a gift-exchange / Secret Santa app).
+
+Visual DNA:
+Hand-drawn ink line art in #2C2E2A with slightly wobbly, imperfect pen lines (not vector, not mechanical, no thick uniform outlines). Objects are filled with FLAT colors from this palette only: grass green #8ED462, coral #FF705D, sky blue #2BA0FF, sun yellow #F5DF16, lilac #E8C3F7, sand #E0DBCE, white #FFFFFF. Fills may slip slightly outside the lines like a marker. No gradients, no shadows, no textures, no glow, no 3D. Lots of empty space: the motif covers about 40-60% of the canvas.
+
+Recurring mascot (must match the reference image exactly):
+"Regalito" — a small, almost cubic gift box filled with solid ink #2C2E2A, slightly irregular hand-drawn outline, a lid with a thin light line, a small grass-green #8ED462 bow on top, two round pure white dot eyes, NO mouth, no eyebrows, no cheeks, very thin single-stroke arms and legs with tiny round feet. Serious, focused, deadpan, slightly absurd; never cute, never posing, never waving at the viewer. Regalito performs the core action of the scene. When several Regalitos appear they are identical except for the bow color (green, coral, sky blue, yellow, lilac).
+
+Scene idea:
+You received an anonymous question from your secret friend.
+
+Composition:
+Regalito sits on the ground reading a small unfolded white letter, a sky blue envelope with a coral seal beside it; above the letter float a few small sky blue question-mark-like squiggles (abstract shapes, not real characters).
+
+Elements (keep it to these):
+unfolded letter / sky blue envelope / abstract squiggles / Regalito
+
+Text in image:
+No text at all. No letters, no numbers, no symbols written anywhere.
+
+Constraints:
+One single idea. No title, no headings, no labels. Not an infographic, not a slide, not a UI mockup, not a children's book illustration, not a polished corporate flat illustration, no realistic humans. Fresh composition. Clean, witty, a little strange.
+
+Background: pure flat white #FFFFFF, completely empty around the motif (no ground, no shadow, no frame) so it can be cut out.

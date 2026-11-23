@@ -1,0 +1,50 @@
+import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { Suspense } from "react";
+import { Screen, TopBar } from "@/components/ui/primitives";
+import { requireParticipant } from "@/lib/data/access";
+import { getMyAssignment, getThreadRef, readMessages, type MailboxMessage } from "@/lib/data/gifts";
+import { t } from "@/lib/i18n";
+import { Mailbox } from "./Mailbox";
+
+export const metadata: Metadata = { title: "Buzón anónimo", robots: { index: false } };
+
+async function MailboxPage({ params }: { params: Promise<{ inviteCode: string; token: string }> }) {
+  const { exchange, me, inviteCode, token, base } = await requireParticipant(params);
+  if (exchange.status !== "drawn") redirect(base);
+  if (!exchange.rules.mailboxEnabled) {
+    return (
+      <>
+        <TopBar backHref={base} title={t("mailbox.title")} />
+        <p className="mt-10 rounded-boton bg-white px-4 py-3.5 text-[15px]">{t("mailbox.closed")}</p>
+      </>
+    );
+  }
+
+  const [giverThread, receiverThread, mine] = await Promise.all([
+    getThreadRef(exchange.id, me.id, "giver"),
+    getThreadRef(exchange.id, me.id, "receiver"),
+    me.revealed ? getMyAssignment(exchange.id, me.id) : null,
+  ]);
+  const [asGiver, asReceiver]: MailboxMessage[][] = await Promise.all([
+    giverThread && mine ? readMessages(giverThread, "giver") : [],
+    receiverThread ? readMessages(receiverThread, "receiver") : [],
+  ]);
+
+  return (
+    <>
+      <TopBar backHref={me.revealed ? `${base}/persona` : base} title={t("mailbox.title")} />
+      <Mailbox inviteCode={inviteCode} token={token} receiverName={mine?.receiver.name ?? null} initial={{ giver: asGiver, receiver: asReceiver }} />
+    </>
+  );
+}
+
+export default function BuzonPage({ params }: PageProps<"/i/[inviteCode]/p/[token]/buzon">) {
+  return (
+    <Screen>
+      <Suspense fallback={<p className="pt-10 text-gris">{t("common.loading")}</p>}>
+        <MailboxPage params={params} />
+      </Suspense>
+    </Screen>
+  );
+}

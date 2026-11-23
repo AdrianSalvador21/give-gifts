@@ -1,0 +1,55 @@
+"use server";
+
+import { FieldValue } from "firebase-admin/firestore";
+import { refresh } from "next/cache";
+import { redirect } from "next/navigation";
+import { exchangesCol, getByToken, participantsCol, wishesCol } from "@/lib/data/exchanges";
+import { getMyAssignment } from "@/lib/data/gifts";
+
+type Fail = { ok: false; error: "not-found" | "not-drawn" | "generic" };
+
+/**
+ * Abre el sobre: es la única forma de que el nombre de quien recibes llegue al navegador.
+ * Marca al participante como «revealed» la primera vez.
+ */
+export async function revealAssignment(inviteCode: string, token: string): Promise<{ ok: true; name: string; wishCount: number } | Fail> {
+  const found = await getByToken(inviteCode, token);
+  if (!found) return { ok: false, error: "not-found" };
+  const { exchange, me } = found;
+  if (exchange.status !== "drawn") return { ok: false, error: "not-drawn" };
+  const mine = await getMyAssignment(exchange.id, me.id);
+  if (!mine) return { ok: false, error: "generic" };
+  if (!me.revealed) await participantsCol(exchange.id).doc(me.id).update({ revealed: true });
+  return { ok: true, name: mine.receiver.name, wishCount: mine.receiver.wishCount };
+}
+
+/** «Lo voy a regalar»: guarda el deseo elegido en la asignación (null lo quita). Quien recibe nunca lo ve. */
+export async function planGift(inviteCode: string, token: string, wishId: string | null): Promise<{ ok: true } | Fail> {
+  const found = await getByToken(inviteCode, token);
+  if (!found) return { ok: false, error: "not-found" };
+  const { exchange, me } = found;
+  if (exchange.status !== "drawn") return { ok: false, error: "not-drawn" };
+  const mine = await getMyAssignment(exchange.id, me.id);
+  if (!mine) return { ok: false, error: "generic" };
+  if (wishId) {
+    if (!/^[A-Za-z0-9]{1,40}$/.test(wishId)) return { ok: false, error: "generic" };
+    const wish = await wishesCol(exchange.id, mine.receiver.id).doc(wishId).get();
+    if (!wish.exists) return { ok: false, error: "generic" };
+  }
+  await exchangesCol().doc(exchange.id).collection("assignments").doc(me.id).update({ plannedWishId: wishId });
+  refresh();
+  return { ok: true };
+}
+
+/** «Ya compré su regalo». */
+export async function markBought(inviteCode: string, token: string): Promise<Fail> {
+  const found = await getByToken(inviteCode, token);
+  if (!found) return { ok: false, error: "not-found" };
+  const { exchange, me } = found;
+  if (exchange.status !== "drawn") return { ok: false, error: "not-drawn" };
+  if (!me.bought) {
+    await participantsCol(exchange.id).doc(me.id).update({ bought: true, revealed: true });
+    await exchangesCol().doc(exchange.id).update({ updatedAt: FieldValue.serverTimestamp() });
+  }
+  redirect(`/i/${inviteCode}/p/${token}/compre`);
+}

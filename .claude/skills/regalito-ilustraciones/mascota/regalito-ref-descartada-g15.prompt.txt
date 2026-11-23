@@ -1,0 +1,7 @@
+# mode: generations · model: gpt-image-1.5 · size: 1536x1024 · quality: high · transparent: true
+# inputs: -
+
+Character reference sheet for a mascot called "Regalito", on a transparent background.
+Show the SAME character three times side by side with generous space between them: (1) standing front view, (2) three-quarter view carrying a small coral #FF705D envelope with both thin arms, (3) side view walking.
+Regalito: a small, almost cubic gift box filled with solid ink #2C2E2A with a slightly irregular hand-drawn outline; a thin lighter line suggests the lid; a small grass-green #8ED462 bow on top drawn with ink outline (two loops and a knot); two round white dot eyes; NO mouth, no eyebrows, no cheeks; very thin single-stroke ink arms and legs with tiny round feet.
+Style: hand-drawn wobbly ink lines, flat color fills only, no gradients, no shadows, no texture, no text, no labels. Deadpan and serious, not cute, not a plush toy, not 3D.
