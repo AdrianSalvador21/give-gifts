@@ -51,18 +51,24 @@ function RegalitoThumb({ link }: { link: boolean }) {
   );
 }
 
-/** Miniatura del deseo: la imagen de la tienda o, si no hay, Regalito sobre un color de la paleta. */
-export function WishThumb({ wish }: { wish: Wish; index?: number }) {
+/**
+ * Miniatura del deseo: la imagen de la tienda o, si no hay, Regalito sobre un color de la paleta.
+ * `size="tarjeta"`: 60 px en móvil y banda ancha arriba de la tarjeta desde sm (rejilla de Mi lista).
+ */
+export function WishThumb({ wish, size = "fila" }: { wish: Wish; index?: number; size?: "fila" | "tarjeta" }) {
+  const box = size === "tarjeta" ? "size-[60px] sm:h-28 sm:w-full" : "size-[60px]";
   if (wish.imageUrl) {
     return (
-      <span className="relative size-[60px] shrink-0 overflow-hidden rounded-[14px] bg-white">
-        <Image src={wish.imageUrl} alt="" fill unoptimized sizes="60px" className="object-contain" />
+      <span className={`relative shrink-0 overflow-hidden rounded-[14px] bg-white ${box}`}>
+        <Image src={wish.imageUrl} alt="" fill unoptimized sizes={size === "tarjeta" ? "(min-width: 640px) 320px, 60px" : "60px"} className="object-contain" />
       </span>
     );
   }
   return (
-    <span aria-hidden className={`size-[60px] shrink-0 overflow-hidden rounded-[14px] ${swatchFor(wish.id)}`}>
-      <RegalitoThumb link={Boolean(wish.url)} />
+    <span aria-hidden className={`grid shrink-0 place-items-center overflow-hidden rounded-[14px] ${box} ${swatchFor(wish.id)}`}>
+      <span className={size === "tarjeta" ? "block size-[60px] sm:size-28" : "block size-full"}>
+        <RegalitoThumb link={Boolean(wish.url)} />
+      </span>
     </span>
   );
 }

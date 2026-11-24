@@ -4,14 +4,20 @@ import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { redirect } from "next/navigation";
 import { requireOrganizer } from "@/lib/auth/session";
 import { db, exchangesCol, participantsCol } from "@/lib/data/exchanges";
-import type { ExchangeDoc, ParticipantDoc } from "@/lib/data/types";
+import { DEFAULT_TIME_ZONE, type ExchangeDoc, type ParticipantDoc } from "@/lib/data/types";
 import { eventDateFrom } from "@/lib/format";
+import { logError } from "@/lib/server/action";
+import { trackEvent } from "@/lib/server/track";
 import { nameKey, newInviteCode, newToken } from "@/lib/tokens";
 import { exchangeInput, type ExchangeInput } from "@/lib/validation/exchange";
 
 export type ActionResult = { ok: false; fieldErrors?: string[]; error?: string } | { ok: true };
 
-/** Crea el intercambio, su invitación y (si participa) al organizador como primer participante. */
+/**
+ * Crea el intercambio, su invitación y (si participa) al organizador como primer participante.
+ * `input.timeZone` (IANA del navegador) es opcional; sin ella se usa America/Mexico_City.
+ * Si sale bien redirige a /crear/listo/{id}.
+ */
 export async function createExchange(input: ExchangeInput): Promise<ActionResult> {
   const organizer = await requireOrganizer("/crear");
   const parsed = exchangeInput.safeParse(input);
@@ -19,6 +25,7 @@ export async function createExchange(input: ExchangeInput): Promise<ActionResult
     return { ok: false, fieldErrors: [...new Set(parsed.error.issues.map((i) => String(i.path[0])))] };
   }
   const v = parsed.data;
+  const timeZone = v.timeZone || DEFAULT_TIME_ZONE;
   const now = FieldValue.serverTimestamp();
 
   for (let attempt = 0; attempt < 5; attempt++) {
@@ -30,7 +37,7 @@ export async function createExchange(input: ExchangeInput): Promise<ActionResult
       name: v.name,
       groupType: v.groupType,
       giftCategory: v.giftCategory,
-      eventAt: Timestamp.fromDate(eventDateFrom(v.date, v.time)),
+      eventAt: Timestamp.fromDate(eventDateFrom(v.date, v.time, timeZone)),
       place: v.place || null,
       budget: { amount: v.budget, currency: "MXN" },
       message: v.message,
@@ -40,6 +47,8 @@ export async function createExchange(input: ExchangeInput): Promise<ActionResult
       status: "open",
       drawnAt: null,
       participantCount: v.ownerParticipates ? 1 : 0,
+      timeZone,
+      registrationOpen: true,
       createdAt: now,
       updatedAt: now,
     };
@@ -70,8 +79,10 @@ export async function createExchange(input: ExchangeInput): Promise<ActionResult
     } catch (err) {
       const code = (err as { code?: number }).code;
       if (code === 6 /* ALREADY_EXISTS */) continue;
+      logError("action:createExchange", err);
       return { ok: false, error: "create" };
     }
+    trackEvent("exchange_created", { groupType: v.groupType, ownerParticipates: v.ownerParticipates });
     redirect(`/crear/listo/${exchangeRef.id}`);
   }
   return { ok: false, error: "create" };

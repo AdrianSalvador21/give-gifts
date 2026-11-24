@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { AppShell } from "@/components/ui/AppShell";
 import { BrandBar, MineLink } from "@/components/ui/BrandBar";
-import { Screen } from "@/components/ui/primitives";
+import { PageTransition } from "@/components/ui/Transitions";
 import { requireOrganizer } from "@/lib/auth/session";
 import { t } from "@/lib/i18n";
 import { Wizard } from "./Wizard";
@@ -18,11 +19,12 @@ async function CreateGate({ searchParams }: { searchParams: Promise<{ nombre?: s
 
 export default function CrearPage({ searchParams }: PageProps<"/crear">) {
   return (
-    <Screen className="pt-2">
-      <BrandBar action={<MineLink />} />
-      <Suspense fallback={<p className="pt-10 text-gris">{t("common.loading")}</p>}>
-        <CreateGate searchParams={searchParams} />
-      </Suspense>
-    </Screen>
+    <AppShell variant="tablero" pattern="puntos" className="pt-2" header={<BrandBar action={<MineLink />} />}>
+      <PageTransition>
+        <Suspense fallback={<p className="pt-10 text-gris">{t("common.loading")}</p>}>
+          <CreateGate searchParams={searchParams} />
+        </Suspense>
+      </PageTransition>
+    </AppShell>
   );
 }

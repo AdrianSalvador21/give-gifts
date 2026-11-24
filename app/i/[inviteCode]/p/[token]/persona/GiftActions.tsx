@@ -2,9 +2,11 @@
 
 import { useState, useTransition } from "react";
 import { markBought, planGift } from "@/app/actions/gifts";
+import { Alert } from "@/components/ui/Alert";
 import { DotButton } from "@/components/ui/DotButton";
 import { CheckIcon } from "@/components/ui/icons";
 import { t } from "@/lib/i18n";
+import type { Desde } from "@/lib/nav";
 
 /** «Lo voy a regalar» / «Lo vas a regalar tú · Cambiar». */
 export function PlanButton({ inviteCode, token, wishId, planned }: { inviteCode: string; token: string; wishId: string; planned: boolean }) {
@@ -12,33 +14,52 @@ export function PlanButton({ inviteCode, token, wishId, planned }: { inviteCode:
   const [error, setError] = useState(false);
   const run = (id: string | null) =>
     start(async () => {
-      const res = await planGift(inviteCode, token, id);
-      setError(!res.ok);
+      try {
+        const res = await planGift(inviteCode, token, id);
+        setError(!res.ok);
+      } catch {
+        setError(true);
+      }
     });
 
   return (
     <div className="flex flex-wrap items-center gap-2">
       {planned ? (
         <>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-pasto px-3 py-1.5 text-[13px] font-medium">
-            <CheckIcon size={12} />
+          <span className="inline-flex h-9 animate-pop items-center gap-1.5 rounded-full bg-pasto px-3 text-[13px] font-medium">
+            <CheckIcon size={12} className="gg-dibujar" />
             {t("person.planned")}
           </span>
-          <button type="button" disabled={pending} onClick={() => run(null)} className="text-[13px] font-medium text-gris underline underline-offset-4">
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => run(null)}
+            className="inline-flex min-h-11 items-center px-1 text-[13px] font-medium text-gris underline underline-offset-4 disabled:opacity-50"
+          >
             {t("person.unplan")}
           </button>
         </>
       ) : (
-        <button type="button" disabled={pending} onClick={() => run(wishId)} className="h-9 rounded-[10px] bg-tinta px-3 text-[13px] font-medium text-white disabled:opacity-50">
+        <button
+          type="button"
+          disabled={pending}
+          aria-busy={pending || undefined}
+          onClick={() => run(wishId)}
+          className="h-11 rounded-[12px] bg-tinta px-3.5 text-[13px] font-medium text-white transition-transform active:scale-95 disabled:opacity-50"
+        >
           {t("person.plan")}
         </button>
       )}
-      {error && <span className="text-[13px] text-[#B23A2A]">{t("person.error")}</span>}
+      {error && (
+        <p role="alert" className="basis-full text-[13px] text-coral-700">
+          {t("person.error")}
+        </p>
+      )}
     </div>
   );
 }
 
-export function BoughtButton({ inviteCode, token }: { inviteCode: string; token: string }) {
+export function BoughtButton({ inviteCode, token, desde }: { inviteCode: string; token: string; desde: Desde | null }) {
   const [pending, start] = useTransition();
   const [error, setError] = useState(false);
   return (
@@ -48,17 +69,18 @@ export function BoughtButton({ inviteCode, token }: { inviteCode: string; token:
         full
         icon="check"
         disabled={pending}
+        aria-busy={pending || undefined}
         onClick={() =>
           start(async () => {
             // Si sale bien, la acción redirige a /compre.
-            const res = await markBought(inviteCode, token);
+            const res = await markBought(inviteCode, token, desde);
             if (res && !res.ok) setError(true);
           })
         }
       >
         {t("person.bought")}
       </DotButton>
-      {error && <p className="text-sm text-[#B23A2A]">{t("person.error")}</p>}
+      {error && <Alert tone="error">{t("person.error")}</Alert>}
     </>
   );
 }

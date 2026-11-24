@@ -13,16 +13,22 @@
     "closeMenu": "Cerrar menú",
     "main": "Principal",
     "footer": "Pie de página",
-    "signIn": "Entrar"
+    "signIn": "Entrar",
+    "backPanel": "Panel",
+    "backMine": "Mis intercambios"
   },
   "landing": {
     "hero": {
       "titleLine1": "Regalar,",
       "titleLine2": "sin enredos",
-      "subtitle": "Tu intercambio de regalos, en un solo link"
+      "subtitle": "Tu intercambio de regalos, en un solo link",
+      "eyebrow": "Gratis · sin apps · por WhatsApp",
+      "cta": "Crear intercambio gratis",
+      "proof": "Sorteo secreto, exclusiones y buzón anónimo",
+      "alt": "Regalitos cargando un regalo gigante"
     },
     "intro": {
-      "text": "Sorteamos tu intercambio en segundos, cuidamos que nadie sepa a quién le tocó y ayudamos a que cada regalo le atine. Gratis, sin cuentas y listo para mandar por WhatsApp.",
+      "text": "Sorteamos tu intercambio en segundos, cuidamos que nadie sepa a quién le tocó y ayudamos a que cada regalo le atine. Gratis, sin cuentas para tus invitados y listo para mandar por WhatsApp.",
       "inputLabel": "Nombre de tu intercambio",
       "inputPlaceholder": "Ponle nombre a tu intercambio",
       "cta": "Empezar"
@@ -55,7 +61,7 @@
     },
     "secret": {
       "title": "Secreto de verdad.",
-      "text": "Cada quien abre su sobre con su propio link. Pregúntale la talla a tu persona por el buzón anónimo sin delatarte, ni siquiera ante quien organiza.",
+      "text": "Cada quien abre su sobre con su propio link, y quien organiza no lo tiene. Pregúntale la talla a tu persona por el buzón anónimo sin delatarte.",
       "cta": "Empezar",
       "alt": "Regalito mete un sobre sellado en un buzón disfrazado de arbusto"
     },
@@ -65,7 +71,7 @@
       "text": "Ya sea la posada de la familia o el intercambio de la ofi, lo armas en dos minutos y el sorteo corre por nuestra cuenta.",
       "cta": "Crear mi intercambio",
       "f1": "Gratis, siempre",
-      "f2": "Un solo link, sin cuentas",
+      "f2": "Un solo link, sin cuentas para tus invitados",
       "f3": "Listo en 2 minutos"
     },
     "footer": {
@@ -87,6 +93,19 @@
     "optional": "(opcional)",
     "whatsapp": "Mandar por WhatsApp",
     "genericError": "Algo salió mal. Inténtalo de nuevo."
+  },
+  "ui": {
+    "close": "Cerrar",
+    "confirm": "Confirmar",
+    "copyManual": "Selecciona el texto y cópialo",
+    "shared": "¡Compartido!",
+    "stepOf": "Paso {n} de {total}",
+    "stepDone": "listo",
+    "stepCurrent": "paso actual",
+    "progress": "{value} de {max}",
+    "envelopeOpen": "Abrir el sobre",
+    "sidebar": "Tus intercambios",
+    "more": "+{n}"
   },
   "auth": {
     "title": "Entra para organizar",
@@ -112,10 +131,32 @@
       "popupClosed": "Cerraste la ventana de Google antes de terminar.",
       "tooMany": "Demasiados intentos. Espera un momento.",
       "nameRequired": "Escribe tu nombre.",
-      "session": "No pudimos iniciar tu sesión. Inténtalo de nuevo."
+      "session": "No pudimos iniciar tu sesión. Inténtalo de nuevo.",
+      "missingPassword": "Escribe tu contraseña.",
+      "popupBlocked": "Tu navegador bloqueó la ventana de Google. Permite ventanas emergentes o entra con tu correo.",
+      "unsupportedBrowser": "Este navegador no permite entrar con Google. Ábrelo en Chrome o Safari, o entra con tu correo.",
+      "network": "No hay conexión. Revisa tu internet e inténtalo de nuevo.",
+      "disabled": "Esta cuenta está desactivada.",
+      "otherProvider": "Ese correo ya entra con otro método. Usa el mismo que la primera vez.",
+      "config": "No pudimos conectar con el inicio de sesión. Inténtalo más tarde.",
+      "webview": "Estás en el navegador de una app (WhatsApp, Instagram…) y Google no deja entrar desde ahí. Abre este link en Chrome o Safari, o entra con tu correo.",
+      "stale": "No pudimos iniciar tu sesión. Revisa que la fecha y hora de tu celular sean correctas e inténtalo de nuevo."
     },
     "creating": "Creando tu cuenta…",
-    "signingIn": "Entrando…"
+    "signingIn": "Entrando…",
+    "webviewTitle": "Ábrelo en tu navegador",
+    "webviewText": "Estás dentro de una app (WhatsApp, Instagram…). Para entrar con Google, abre esta página en Chrome o Safari. Con tu correo sí puedes entrar aquí.",
+    "webviewCopy": "Copiar link",
+    "eyebrow": "Para organizadores",
+    "artTitle": "Organiza en dos minutos.",
+    "artPoint1": "Quienes se apuntan no necesitan cuenta",
+    "artPoint2": "Sorteo secreto con exclusiones",
+    "artPoint3": "Tus intercambios en cualquier dispositivo",
+    "legalBefore": "Al continuar aceptas los ",
+    "legalTerms": "Términos",
+    "legalMiddle": " y el ",
+    "legalPrivacy": "Aviso de privacidad",
+    "legalAfter": "."
   },
   "create": {
     "step": "Paso {n} de 4",
@@ -143,7 +184,8 @@
       "place": "Dónde",
       "placePlaceholder": "Casa de la tía Lu",
       "budget": "Presupuesto por regalo",
-      "currency": "Moneda"
+      "currency": "Moneda",
+      "timeZone": "En tu hora local: {zone}."
     },
     "s4": {
       "title": "Tú y las reglas.",
@@ -154,11 +196,12 @@
       "participates": "Yo también participo",
       "participatesHint": "Entras al sorteo como uno más.",
       "seesMap": "Ver quién le regala a quién",
-      "seesMapHint": "Apagado, nadie lo ve. Ni tú.",
+      "seesMapHint": "Apagado, no lo verás en tu panel. Tampoco tendrás los links de los demás: solo el tuyo y los de quien agregues tú.",
       "mailbox": "Buzón anónimo",
       "mailboxHint": "Pueden preguntarse tallas sin delatarse.",
       "submit": "Crear intercambio",
-      "creating": "Creando…"
+      "creating": "Creando…",
+      "participatesOnHint": "Entras al sorteo como uno más. Después de crear podrás llenar tu lista."
     },
     "groups": {
       "familia": "Familia",
@@ -185,6 +228,16 @@
       "ownerName": "Tu nombre necesita entre 2 y 40 caracteres.",
       "message": "El mensaje puede tener hasta 500 caracteres.",
       "place": "El lugar puede tener hasta 80 caracteres."
+    },
+    "previewLabel": "Así la verá tu grupo",
+    "previewTbd": "Por definir",
+    "previewName": "Tu intercambio",
+    "enterHint": "o presiona Enter ↵",
+    "rail": {
+      "name": "Nombre",
+      "group": "Grupo y regalos",
+      "when": "Fecha y presupuesto",
+      "details": "Últimos detalles"
     }
   },
   "ready": {
@@ -192,11 +245,25 @@
     "title2": "A juntar al grupo.",
     "invites": "{owner} te invita a",
     "min": "Se necesitan al menos 3 personas para sortear. El link no caduca.",
-    "goPanel": "Ir a mi intercambio",
+    "goPanel": "Ir al panel",
     "whatsappText": "¡Hola! {owner} te invita al intercambio «{name}» ({date}, regalo de hasta {budget}). Apúntate aquí: {link}",
-    "alt": "Regalito reparte hilos a otros Regalitos"
+    "alt": "Regalito reparte hilos a otros Regalitos",
+    "budget": "Hasta {budget} MXN",
+    "linkLabel": "Link de invitación",
+    "messagePreview": "Así se verá tu mensaje",
+    "inviteTitle": "Invita al grupo",
+    "fillListTitle": "Mientras se unen, llena tu lista",
+    "fillListText": "Tú también participas. Deja 3 ideas para que tu amigo secreto le atine.",
+    "fillListMore": "Llevas {n} de 3 ideas. Deja las que faltan para que tu amigo secreto le atine.",
+    "fillListDone": "Ya tienes {n} ideas. Puedes agregar más cuando quieras.",
+    "fillListCta": "Llenar mi lista",
+    "fillListEdit": "Ver mi lista",
+    "fillListNote": "¡no lo dejes al final!"
   },
   "join": {
+    "badge": "Invitación",
+    "proofSome": "{names} y {n} más",
+    "proofAll": "{names}",
     "invites": "{owner} te invita a",
     "when": "Cuándo",
     "gift": "Regalo",
@@ -218,8 +285,19 @@
       "name": "Tu nombre necesita entre 2 y 40 caracteres.",
       "taken": "Ya hay alguien con ese nombre en el grupo. Agrega tu apellido o un apodo.",
       "closed": "El sorteo ya se hizo; ya no se puede entrar.",
-      "generic": "No pudimos apuntarte. Inténtalo de nuevo."
-    }
+      "generic": "No pudimos apuntarte. Inténtalo de nuevo.",
+      "paused": "Quien organiza ya cerró las inscripciones.",
+      "full": "Este intercambio ya llegó al máximo de 100 personas.",
+      "rate": "Demasiados intentos desde esta conexión. Espera un rato e inténtalo de nuevo."
+    },
+    "takenIsYou": "¿Eres tú? Pídele tu link a {owner}.",
+    "askLink": "Pedirle mi link por WhatsApp",
+    "askLinkText": "Hola {owner}, ya me había apuntado a «{exchange}» como {name}, pero perdí mi link. ¿Me generas uno nuevo?",
+    "closedTextOwner": "El sorteo ya se hizo y no se aceptan más personas. Si ya te habías apuntado y perdiste tu link, pídele uno nuevo a {owner}.",
+    "pausedTitle": "Las inscripciones están cerradas.",
+    "pausedText": "{owner} ya no está aceptando más personas en este intercambio.",
+    "fullTitle": "Este intercambio ya está lleno.",
+    "fullText": "Llegó al máximo de 100 personas. Si crees que es un error, avísale a {owner}."
   },
   "home": {
     "welcome": "¡Ya estás dentro!",
@@ -247,7 +325,40 @@
     "seePerson": "Ver a mi persona",
     "mailbox": "Buzón anónimo",
     "revealedTitle": "Ya abriste tu sobre",
-    "revealedText": "Ve su lista y aparta lo que le vas a regalar."
+    "revealedText": "Ve su lista y aparta lo que le vas a regalar.",
+    "linkReset": "{owner} generó un link nuevo para ti el {date}. El anterior ya no sirve: guarda este.",
+    "assignmentChanged": "Tu persona cambió el {date} porque alguien salió del intercambio. Abre tu sobre para ver a quién le regalas ahora.",
+    "assignmentChangedBought": "Si ya habías comprado, ese regalo era para otra persona.",
+    "countdown": "Faltan {n} días",
+    "countdownOne": "Falta 1 día",
+    "countdownToday": "Es hoy",
+    "countdownPast": "Ya pasó el intercambio",
+    "nextStep": "Tu siguiente paso",
+    "stepsTitle": "Así sigue",
+    "moreIdeas": "Agrega {n} ideas más",
+    "moreIdeasOne": "Agrega 1 idea más",
+    "waitEyebrow": "Mientras llega el sorteo",
+    "waitTitle": "Tu lista está lista",
+    "waitText": "Te avisarán por el grupo cuando {owner} haga el sorteo. Mientras, puedes agregar más ideas.",
+    "envelopeEyebrow": "Tu sobre llegó",
+    "buyTitle": "Compra su regalo",
+    "doneEyebrow": "Ya cumpliste",
+    "doneTitle": "Ya compraste su regalo",
+    "doneText": "Ahora a esperar el gran día. Si quieres, sigue platicando en el buzón.",
+    "doneTextNoMailbox": "Ahora a esperar el gran día.",
+    "seeBought": "Ver el avance del grupo",
+    "shortcuts": "Atajos",
+    "budget": "Hasta {budget}",
+    "backHome": "Mi intercambio",
+    "firstTitle": "Guarda tu link antes de seguir",
+    "firstText": "Es tu llave personal: sin él no puedes volver a tu sobre. Mándatelo por WhatsApp o cópialo en tus notas.",
+    "firstDone": "Listo, ya lo guardé",
+    "noticeTitle": "Aviso",
+    "seeEnvelope": "Ver mi sobre",
+    "ideasProgress": "{n} de 3 ideas",
+    "ownerNoticeTitle": "Organizas este intercambio",
+    "ownerNoticeText": "Entra para ver el grupo y tus pendientes.",
+    "ownerNoticeCta": "Entrar"
   },
   "list": {
     "title": "Mi lista",
@@ -279,14 +390,30 @@
       "note": "La nota puede tener hasta 200 caracteres.",
       "price": "Escribe un precio válido.",
       "generic": "No pudimos guardar el cambio. Inténtalo de nuevo.",
-      "url": "Ese link no parece válido. Revisa que esté completo."
+      "url": "Ese link no parece válido. Revisa que esté completo.",
+      "rate": "Agregaste muchos links seguidos. Espera un rato e inténtalo de nuevo."
     },
     "alt": "Regalito sostiene una pinza junto a un tendedero vacío",
     "urlLabel": "Link de la tienda",
     "urlPlaceholder": "https://…",
     "urlHint": "Cámbialo o bórralo para quitarlo.",
     "addLink": "Agregar link",
-    "saving": "Guardando…"
+    "saving": "Guardando…",
+    "formTitle": "Agregar una idea",
+    "countOf": "{n} de {max} ideas",
+    "slot1": "Pega un link de tienda",
+    "slot2": "o escribe una idea",
+    "slot3": "una tercera, por si acaso",
+    "another": "Otra idea",
+    "ideasLabel": "Ideas rápidas",
+    "ideaBook": "Un libro",
+    "ideaCoffee": "Café",
+    "ideaHome": "Algo para la casa",
+    "goalNote": "¡faltan {n} para 3!",
+    "goalNoteOne": "¡falta 1 para 3!",
+    "deleteTitle": "¿Borrar «{title}»?",
+    "deleteText": "Se quita de tu lista. Si tu amigo secreto ya lo había apartado, tendrá que elegir otra idea.",
+    "deleteYes": "Sí, borrar"
   },
   "panel": {
     "badge": "Organizas",
@@ -330,22 +457,160 @@
     "today": "es hoy",
     "envelopeTitle": "Tu sobre te espera",
     "envelopeText": "Ábrelo cuando nadie te vea.",
+    "personTileTitle": "Tu persona",
+    "personShort": "Ver",
     "revealed": "Abrieron su sobre",
     "lists": "Llenaron su lista",
     "bought": "Ya compraron",
     "pendingReveal": "Aún no abren su sobre: {names}.",
     "allRevealed": "Todos ya abrieron su sobre.",
     "remind": "Recordar",
-    "remindText": "¡Hola {name}! Ya se hizo el sorteo de «{exchange}». Abre tu sobre aquí (es tu link personal, no lo compartas): {link}",
+    "remindText": "¡Hola {name}! Ya se hizo el sorteo de «{exchange}». Abre tu sobre con el link personal que guardaste. Si no lo encuentras, entra aquí desde el mismo celular con el que te apuntaste: {link}",
     "drawnAnnounceText": "¡Ya se hizo el sorteo de «{exchange}»! Cada quien abra su sobre con su link personal. El intercambio es el {date}.",
     "givesTo": "Le regala a {name}",
-    "mapHidden": "Elegiste no ver quién le regala a quién. Nadie lo sabrá hasta el día del intercambio.",
+    "mapHidden": "Elegiste no ver quién le regala a quién. No tienes los links de quienes se apuntaron solos, así que tampoco puedes abrir sus sobres; solo los de quien agregaste tú.",
     "errors": {
       "name": "El nombre necesita entre 2 y 40 caracteres.",
       "taken": "Ya hay alguien con ese nombre.",
       "closed": "El sorteo ya se hizo.",
       "generic": "No pudimos hacer el cambio. Inténtalo de nuevo.",
-      "owner": "No puedes quitarte a ti."
+      "owner": "No puedes quitarte a ti.",
+      "full": "Llegaron al máximo de 100 personas.",
+      "paused": "Las inscripciones están cerradas.",
+      "notDrawn": "Todavía no hay sorteo.",
+      "min": "Quedarían muy pocas personas. Mejor rehaz el sorteo.",
+      "exclusion": "Quitar a esta persona rompería una exclusión. Mejor rehaz el sorteo.",
+      "notFound": "Esa persona ya no está en el intercambio."
+    },
+    "noLinkSelf": "Se apuntó solo: su link es solo suyo.",
+    "regenerateLink": "Generar link nuevo",
+    "regenerateConfirm": "{name} ya no podrá entrar con su link actual y verá que le generaste uno nuevo. ¿Continuar?",
+    "regenerateYes": "Sí, generar",
+    "regenerateDone": "Link nuevo para {name}. Cópialo y mándaselo: no lo volverás a ver aquí.",
+    "regenerateWhatsappText": "¡Hola {name}! Te generé un link nuevo para «{exchange}» (el anterior ya no sirve). Es personal, no lo compartas: {link}",
+    "closeRegistration": "Cerrar inscripciones",
+    "openRegistration": "Abrir inscripciones",
+    "registrationClosed": "Inscripciones cerradas: nadie más puede apuntarse con la invitación. Tú sí puedes agregar a alguien sin celular.",
+    "redoDraw": "Rehacer sorteo",
+    "redoConfirm": "Se borrarán los resultados y los mensajes del buzón. Podrás sumar gente y volver a sortear.",
+    "redoConfirmRevealed": "{n} ya abrieron su sobre. Si rehaces el sorteo, lo que vieron deja de valer y tendrán que abrirlo otra vez. ¿Seguro?",
+    "redoConfirmRevealedOne": "1 persona ya abrió su sobre. Si rehaces el sorteo, lo que vio deja de valer y tendrá que abrirlo otra vez. ¿Seguro?",
+    "redoYes": "Sí, rehacer",
+    "removeAfterDraw": "Quitar del intercambio",
+    "confirmRemoveAfterDraw": "¿Quitar a {name}? A quien le regalaba se le asignará otra persona y le avisaremos al entrar.",
+    "deleteExchange": "Borrar intercambio",
+    "deleteConfirm": "Se borrará «{name}» con todas sus listas y mensajes, y los links dejarán de servir. No se puede deshacer.",
+    "deleteTypeName": "Escribe el nombre del intercambio para confirmar",
+    "deleteYes": "Sí, borrar para siempre",
+    "budget": "Hasta {budget}",
+    "notRevealed": "Sobre sin abrir",
+    "revealedPill": "Sobre abierto",
+    "boughtPill": "Ya compró",
+    "eyebrow": "Tú organizas · {days}",
+    "kpiJoined": "Apuntados",
+    "kpiLists": "Con lista",
+    "kpiExclusions": "Exclusiones",
+    "kpiReady": "Listos para sortear",
+    "kpiWait": "Para sortear",
+    "kpiAnnounce": "Ya se sorteó",
+    "colPerson": "Persona",
+    "colStatus": "Estado",
+    "colLink": "Link",
+    "moreActions": "Más acciones para {name}",
+    "regenerateTitle": "Link nuevo de {name}",
+    "namesAnd": "{a} y {b}",
+    "namesMore": "{names} y {n} más",
+    "optionsTitle": "Más opciones",
+    "registrationOpenText": "Cualquiera con la invitación puede apuntarse.",
+    "redoText": "Borra los resultados para sumar o quitar gente y volver a sortear.",
+    "redoDone": "Sorteo deshecho. Ya puedes ajustar el grupo y volver a sortear.",
+    "deleteText": "Borra el intercambio con sus listas y mensajes. No se puede deshacer.",
+    "sidebarNew": "Nuevo",
+    "registrationDone": "Listo, se guardó el cambio.",
+    "drawShort": "Sortear",
+    "openShort": "Abrir",
+    "announceShort": "Avisar",
+    "account": "Tu cuenta",
+    "statsOpen": "{n} apuntados · {lists} con lista · {exclusions} exclusiones",
+    "statsDrawn": "{n} personas · sobres abiertos: {revealed} · compraron: {bought}",
+    "ideasCount": "{n} ideas",
+    "ideasOne": "1 idea",
+    "ideasNone": "Sin ideas",
+    "ideasGoal": "{n} de 3 ideas",
+    "pillNeedsIdeas": "Le faltan ideas",
+    "pillListReady": "Lista lista",
+    "steps": {
+      "title": "Tus pendientes",
+      "progress": "{n} de {total} listos",
+      "now": "Ahora",
+      "done": "Hecho",
+      "afterDraw": "Tras el sorteo",
+      "fromThree": "Desde 3 personas",
+      "create": {
+        "title": "Crea el intercambio"
+      },
+      "list": {
+        "title": "Llena tu lista",
+        "nowTitle": "Llena tu lista de deseos",
+        "nowText": "Tu amigo secreto la verá cuando sortees. Llevas {n} de 3 ideas.",
+        "cta": "Llenar mi lista",
+        "ctaMore": "Seguir con mi lista",
+        "see": "Ver",
+        "next": "Llena tu lista · {n} de 3 ideas"
+      },
+      "invite": {
+        "title": "Invita al grupo",
+        "nowText": "Van {n}. Se necesitan al menos 3 para sortear.",
+        "nowTextOne": "Vas tú solo. Se necesitan al menos 3 para sortear.",
+        "cta": "Invitar",
+        "sub": "{n} apuntados",
+        "subOne": "1 apuntado",
+        "action": "{n} apuntados · Invitar",
+        "actionOne": "1 apuntado · Invitar",
+        "next": "Invita al grupo · van {n}"
+      },
+      "draw": {
+        "title": "Haz el sorteo",
+        "nowText": "Ya son {n}. Cuando estén todos, sortea y a cada quien le llega su sobre.",
+        "cta": "Sortear",
+        "ready": "Ya se puede",
+        "sub": "Sorteado el {date}",
+        "next": "Haz el sorteo · ya son {n}"
+      },
+      "gift": {
+        "title": "Abre tu sobre y compra",
+        "sub": "Te toca",
+        "subDone": "Ya compraste",
+        "envelopeTitle": "Abre tu sobre",
+        "envelopeText": "Descubre a quién le regalas. Después verás su lista y podrás marcar «Ya compré».",
+        "envelopeCta": "Abrir mi sobre",
+        "buyTitle": "Compra su regalo",
+        "buyText": "Ya sabes a quién le regalas. Mira su lista y marca «Ya compré» cuando lo tengas.",
+        "buyCta": "Ver su lista",
+        "nextEnvelope": "Abre tu sobre",
+        "nextBuy": "Compra su regalo"
+      },
+      "announce": {
+        "title": "Avisa al grupo",
+        "sub": "Te toca",
+        "nowText": "Que cada quien abra su sobre con su link personal.",
+        "cta": "Avisar por WhatsApp",
+        "next": "Avisa al grupo que ya se sorteó"
+      },
+      "allDone": {
+        "title": "¡Ya compraste!",
+        "text": "Solo falta el {date}. Aquí ves cómo va el grupo.",
+        "cta": "Ver el avance",
+        "next": "Todo listo"
+      }
+    },
+    "myPart": {
+      "title": "Mi parte",
+      "list": "Mi lista",
+      "mailbox": "Buzón",
+      "mailboxLocked": "Se abre al sortear",
+      "unread": "{n} sin leer",
+      "noUnread": "Sin mensajes nuevos"
     }
   },
   "edit": {
@@ -353,7 +618,10 @@
     "save": "Guardar cambios",
     "saving": "Guardando…",
     "saved": "Cambios guardados.",
-    "lockedAfterDraw": "Después del sorteo solo puedes cambiar fecha, hora, lugar, mensaje y buzón."
+    "lockedAfterDraw": "Después del sorteo solo puedes cambiar fecha, hora, lugar, mensaje y buzón.",
+    "timeZone": "Zona horaria: {zone}.",
+    "pastHint": "La fecha del intercambio ya pasó. Puedes cambiar el mensaje o el buzón sin moverla.",
+    "summary": "Así queda"
   },
   "draw": {
     "title": "Antes de sortear",
@@ -369,7 +637,7 @@
     "none": "Sin exclusiones: cualquiera puede tocarle a cualquiera.",
     "submit": "Sortear a los {n}",
     "drawing": "Sorteando…",
-    "warning": "No se puede deshacer. Avisa al grupo cuando esté listo.",
+    "warning": "Si te equivocas puedes rehacerlo, pero quienes ya abrieron su sobre tendrán que abrirlo otra vez. Avisa al grupo cuando esté listo.",
     "errors": {
       "min": "Se necesitan al menos 3 personas para sortear.",
       "impossible": "Con las exclusiones actuales no hay sorteo posible. Quita alguna.",
@@ -377,7 +645,15 @@
       "same": "Elige a dos personas distintas.",
       "duplicate": "Esas dos personas ya están excluidas.",
       "generic": "No pudimos sortear. Inténtalo de nuevo."
-    }
+    },
+    "pair": "{a} y {b} no se regalan entre sí",
+    "people": "Personas",
+    "exclusionsCount": "Exclusiones",
+    "summaryTitle": "Así va el sorteo",
+    "seesMapOn": "Tú podrás ver quién le regala a quién en tu panel.",
+    "seesMapOff": "No verás quién le regala a quién en tu panel.",
+    "confirmTitle": "¿Sortear a los {n}?",
+    "confirmYes": "Sí, sortear"
   },
   "envelope": {
     "back": "Volver",
@@ -398,7 +674,14 @@
     "close": "Volver a cerrar el sobre",
     "notDrawnTitle": "Todavía no hay sorteo.",
     "notDrawnText": "Te avisarán por el grupo cuando se haga.",
-    "error": "No pudimos abrir tu sobre. Inténtalo de nuevo."
+    "error": "No pudimos abrir tu sobre. Inténtalo de nuevo.",
+    "eyebrowOpen": "Tu persona",
+    "ask": "Preguntarle en secreto",
+    "shh": "¡shh! nadie más lo sabe",
+    "ideasPill": "{n} ideas",
+    "ideasPillOne": "1 idea",
+    "ideasPillNone": "Sin ideas aún",
+    "eyebrowClosed": "Solo para tus ojos"
   },
   "person": {
     "title": "Tu persona",
@@ -418,7 +701,9 @@
     "bought": "Ya compré su regalo",
     "boughtDone": "Ya compraste su regalo",
     "favorite": "La quiere más",
-    "error": "No pudimos guardar. Inténtalo de nuevo."
+    "error": "No pudimos guardar. Inténtalo de nuevo.",
+    "changed": "Tu persona cambió el {date} porque alguien salió del intercambio.",
+    "emptySlot": "Aquí aparecerán sus ideas"
   },
   "bought": {
     "title": "¡Regalo comprado!",
@@ -428,7 +713,12 @@
     "calendar": "Al calendario",
     "back": "Volver a mi intercambio",
     "mine": "Mis intercambios",
-    "textOwner": "Lo verás en tu panel junto con el avance del grupo."
+    "textOwner": "Lo verás en tu panel junto con el avance del grupo.",
+    "missing": "Faltan {names}",
+    "missingMore": "Faltan {names} y {n} más",
+    "allDone": "¡Ya compraron todos!",
+    "note": "¡a esperar el gran día!",
+    "backPanel": "Volver al panel"
   },
   "mailbox": {
     "title": "Buzón anónimo",
@@ -438,22 +728,27 @@
     "friendName": "Tu amigo secreto",
     "friendSub": "Tú no sabes quién es",
     "alt": "Regalito lee una carta anónima",
-    "hintPerson": "Lo que escribas aquí llega firmado como «Tu amigo secreto». Ni el organizador lo ve.",
+    "hintPerson": "Lo que escribas aquí llega firmado como «Tu amigo secreto». Quien organiza no puede leerlo, salvo que tu persona no tenga celular y su cuenta la maneje quien organiza.",
     "hintFriend": "Aquí te escribe quien te va a regalar. Contéstale con confianza: no sabrás quién es hasta el intercambio.",
     "emptyPerson": "Pregúntale tallas, colores o lo que necesites.",
     "emptyFriend": "Tu amigo secreto todavía no te escribe.",
     "label": "Escribe un mensaje",
     "placeholder": "Pregúntale algo…",
+    "placeholderFriend": "Escríbele…",
     "send": "Enviar",
     "closed": "El buzón está apagado para este intercambio.",
     "errors": {
       "empty": "Escribe algo antes de enviar.",
       "long": "El mensaje puede tener hasta 500 caracteres.",
       "closed": "El buzón está apagado.",
-      "generic": "No se pudo enviar. Inténtalo de nuevo."
+      "generic": "No se pudo enviar. Inténtalo de nuevo.",
+      "limit": "Este buzón llegó al máximo de mensajes de hoy. Mañana pueden seguir.",
+      "rate": "Vas muy rápido. Espera unos minutos antes de mandar otro mensaje.",
+      "gone": "Este link ya no sirve. Pide a quien organiza uno nuevo."
     },
     "unreadLabel": "{n} mensajes nuevos",
-    "unreadLabelOne": "1 mensaje nuevo"
+    "unreadLabelOne": "1 mensaje nuevo",
+    "shh": "nadie sabe que eres tú"
   },
   "mine": {
     "title": "Mis intercambios",
@@ -477,6 +772,37 @@
     "create": "Crear intercambio",
     "signIn": "Entrar para ver los que organizas",
     "signedAs": "Organizas como {email}",
-    "device": "Los que te apuntaste aparecen aquí si los abriste en este navegador."
+    "device": "Los que te apuntaste aparecen aquí si los abriste en este navegador.",
+    "emptyAllTitle": "Todavía no tienes intercambios.",
+    "emptyAllText": "Crea uno para tu grupo o abre el link de invitación que te mandaron.",
+    "pasteLabel": "¿Te invitaron? Pega el link",
+    "pastePlaceholder": "givegifts.mx/i/…",
+    "pasteGo": "Abrir",
+    "pasteError": "Ese link no parece una invitación de givegifts.",
+    "nextStep": "Siguiente paso",
+    "openPanel": "Abrir panel",
+    "myList": "Mi lista",
+    "stepsProgress": "{n} de {total} pasos listos",
+    "peopleOne": "1 persona"
+  },
+  "fallback": {
+    "notFoundTitle": "Este link no existe o te quitaron del intercambio.",
+    "notFoundText": "Revisa que el link esté completo. Si alguien te lo mandó, pídele que te lo comparta otra vez.",
+    "notFoundAlt": "Regalito sentado en una banca mientras otro se va",
+    "errorTitle": "Algo se nos enredó.",
+    "errorText": "No pudimos cargar esta página. Inténtalo otra vez en unos segundos.",
+    "retry": "Intentar de nuevo",
+    "home": "Ir al inicio",
+    "code": "Código del error: {digest}",
+    "notFoundEyebrow": "Error 404",
+    "errorEyebrow": "Algo falló"
+  },
+  "legal": {
+    "updated": "Última actualización: {date}",
+    "privacy": "Aviso de privacidad",
+    "terms": "Términos de uso",
+    "contact": "Contacto",
+    "eyebrow": "Lo legal, en claro",
+    "toc": "En esta página"
   }
 }

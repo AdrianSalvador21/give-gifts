@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
-import { ArrowIcon, CheckIcon, PlusIcon } from "./icons";
+import { ArrowIcon, CheckIcon, PlusIcon, SendIcon } from "./icons";
 
 export type DotVariant = "pasto" | "coral" | "sol" | "cielo" | "blanco" | "tinta";
 
@@ -13,7 +13,7 @@ const VARIANTS: Record<DotVariant, { button: string; dot: string }> = {
   tinta: { button: "bg-tinta text-white", dot: "bg-pasto text-tinta" },
 };
 
-const ICONS = { arrow: ArrowIcon, plus: PlusIcon, check: CheckIcon };
+const ICONS = { arrow: ArrowIcon, plus: PlusIcon, check: CheckIcon, send: SendIcon };
 
 type Common = {
   children: ReactNode;
@@ -21,32 +21,45 @@ type Common = {
   /** Color del círculo cuando no se quiere el del variant (p. ej. CTA blanca con punto coral). */
   dotClassName?: string;
   icon?: keyof typeof ICONS;
-  size?: "md" | "lg";
-  full?: boolean;
+  size?: "sm" | "md" | "lg";
+  /** `true`: ancho completo siempre. `"mobile"`: ancho completo hasta lg, luego ancho natural. */
+  full?: boolean | "mobile";
+  /** CTA principal de la pantalla: borde y sombra tinta, se hunde al apretar. Uno por pantalla. */
+  ink?: boolean;
   className?: string;
 };
 
 type AsLink = Common & { href: string } & Omit<ComponentProps<typeof Link>, "href" | "className" | "children">;
 type AsButton = Common & { href?: undefined } & Omit<ComponentProps<"button">, "className" | "children">;
 
+const SIZES = {
+  sm: { button: "h-12 pl-[18px] pr-1.5 text-base", dot: "size-9" },
+  md: { button: "h-[60px] pl-[22px] pr-2 text-lg", dot: "size-11" },
+  lg: { button: "h-[68px] pl-6 pr-2.5 text-[19px]", dot: "size-12" },
+};
+
 /** Botón de la marca: texto a la izquierda y un círculo con flecha a la derecha. */
 export function DotButton(props: AsLink | AsButton) {
-  const { children, variant = "pasto", dotClassName, icon = "arrow", size = "md", full, className = "", ...rest } = props;
+  const { children, variant = "pasto", dotClassName, icon = "arrow", size = "md", full, ink, className = "", ...rest } = props;
   const v = VARIANTS[variant];
+  const s = SIZES[size];
   const Icon = ICONS[icon];
   const classes = [
-    "group inline-flex items-center justify-between gap-4 whitespace-nowrap rounded-boton font-medium no-underline",
-    "transition-opacity disabled:opacity-50 aria-disabled:opacity-50",
-    size === "lg" ? "h-[68px] pl-6 pr-2.5 text-[19px]" : "h-[60px] pl-[22px] pr-2 text-lg",
-    full ? "w-full" : "",
+    "group inline-flex items-center justify-between gap-4 whitespace-nowrap rounded-boton font-medium no-underline select-none",
+    "disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:opacity-50",
+    ink
+      ? "trazo-tinta presionable"
+      : "transition-[transform,opacity] duration-150 ease-rebote active:not-disabled:translate-y-0.5 active:not-disabled:scale-[0.99]",
+    s.button,
+    full === "mobile" ? "w-full lg:w-auto" : full ? "w-full" : "",
     v.button,
     className,
   ].join(" ");
   const dot = (
     <span
-      className={`grid shrink-0 place-items-center rounded-full text-tinta transition-transform group-hover:translate-x-1 ${
-        size === "lg" ? "size-12" : "size-11"
-      } ${dotClassName ?? v.dot}`}
+      className={`grid shrink-0 place-items-center rounded-full text-tinta transition-transform duration-250 ease-rebote group-hover:translate-x-1 group-hover:-rotate-6 group-active:scale-90 ${s.dot} ${
+        dotClassName ?? v.dot
+      }`}
     >
       <Icon size={icon === "arrow" ? 16 : 18} />
     </span>
@@ -66,5 +79,16 @@ export function DotButton(props: AsLink | AsButton) {
       {children}
       {dot}
     </button>
+  );
+}
+
+/** Botón secundario de texto (≥ 44 px): «Volver a cerrar el sobre», «Cancelar». */
+export function TextButton({ className = "", type = "button", ...rest }: ComponentProps<"button">) {
+  return (
+    <button
+      type={type}
+      className={`inline-flex min-h-11 items-center justify-center rounded-boton px-3 font-medium underline-offset-4 transition-transform hover:underline active:scale-[0.98] disabled:opacity-50 ${className}`}
+      {...rest}
+    />
   );
 }

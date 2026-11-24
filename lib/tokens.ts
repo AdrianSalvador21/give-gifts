@@ -4,6 +4,7 @@ import { randomInt } from "node:crypto";
 
 const BASE62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 const BASE36 = "0123456789abcdefghijklmnopqrstuvwxyz";
+const INVITE_SUFFIX = 7;
 
 function random(alphabet: string, length: number): string {
   let out = "";
@@ -11,12 +12,16 @@ function random(alphabet: string, length: number): string {
   return out;
 }
 
-/** Llave del link personal: 12 caracteres base62 (~71 bits). Nunca cambia. */
+/** Llave del link personal: 12 caracteres base62 (~71 bits). Solo cambia si quien organiza genera uno nuevo. */
 export function newToken(): string {
   return random(BASE62, 12);
 }
 
-/** "Posada de los primos 2026" → "posada-de-los-primos-2026-7qk2". */
+/**
+ * "Posada de los primos 2026" → "posada-de-los-primos-2026-7qk2m9x".
+ * 7 caracteres base36 (~78 mil millones): adivinar un código conociendo el nombre ya no es práctico.
+ * Los códigos viejos de 4 siguen siendo válidos.
+ */
 export function newInviteCode(name: string): string {
   const slug =
     name
@@ -27,7 +32,7 @@ export function newInviteCode(name: string): string {
       .replace(/^-+|-+$/g, "")
       .slice(0, 30)
       .replace(/-+$/g, "") || "intercambio";
-  return `${slug}-${random(BASE36, 4)}`;
+  return `${slug}-${random(BASE36, INVITE_SUFFIX)}`;
 }
 
 export function isValidToken(token: string): boolean {

@@ -9,11 +9,15 @@ import { adminAuth, adminDb } from "@/lib/firebase/admin";
  * Cambia el ID token recién emitido por Firebase Auth (cliente) por una session cookie httpOnly.
  * También crea users/{uid} la primera vez. `displayName` llega al registrarse con correo.
  */
-export async function createSession(idToken: string, displayName?: string): Promise<{ ok: boolean }> {
+export async function createSession(idToken: string, displayName?: string): Promise<{ ok: boolean; error?: "stale" | "generic" }> {
   try {
+    if (typeof idToken !== "string" || !idToken) return { ok: false, error: "generic" };
     const decoded = await adminAuth().verifyIdToken(idToken, true);
-    // Solo tokens recientes: evita reutilizar un token viejo robado.
-    if (Date.now() / 1000 - decoded.auth_time > 5 * 60) return { ok: false };
+    // Solo tokens recientes: evita reutilizar un token viejo robado. Si falla aquí suele ser el reloj del celular.
+    if (Date.now() / 1000 - decoded.auth_time > 5 * 60) {
+      console.warn("[action:createSession] auth_time viejo (¿reloj desfasado?)", { skewSec: Math.round(Date.now() / 1000 - decoded.auth_time) });
+      return { ok: false, error: "stale" };
+    }
 
     const name = displayName?.trim() || (decoded.name as string | undefined) || decoded.email?.split("@")[0] || "";
     if (displayName?.trim() && !decoded.name) {
@@ -35,11 +39,26 @@ export async function createSession(idToken: string, displayName?: string): Prom
       maxAge: SESSION_MAX_AGE_MS / 1000,
     });
     return { ok: true };
-  } catch {
-    return { ok: false };
+  } catch (err) {
+    console.error("[action:createSession]", err);
+    return { ok: false, error: "generic" };
   }
 }
 
+/**
+ * Borra la cookie y revoca los refresh tokens de la cuenta (M9): una cookie robada deja de servir.
+ * Ojo: revocar cierra la sesión de esa cuenta en todos sus dispositivos.
+ */
 export async function signOut(): Promise<void> {
-  (await cookies()).delete(SESSION_COOKIE);
+  const jar = await cookies();
+  const value = jar.get(SESSION_COOKIE)?.value;
+  jar.delete(SESSION_COOKIE);
+  if (!value) return;
+  try {
+    const { uid } = await adminAuth().verifySessionCookie(value, false);
+    await adminAuth().revokeRefreshTokens(uid);
+  } catch (err) {
+    const code = (err as { code?: string }).code ?? "";
+    if (!/session-cookie-(expired|revoked)|argument-error/.test(code)) console.error("[action:signOut]", err);
+  }
 }
