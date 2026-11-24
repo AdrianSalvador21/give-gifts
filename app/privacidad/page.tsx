@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LEGAL } from "@/lib/site";
-import { LegalPage, LegalSection, legalToc, Mail } from "../_legal/LegalPage";
+import { LegalPage, LegalSection, legalToc, Mail, Phone } from "../_legal/LegalPage";
 
 export const metadata: Metadata = {
   title: "Aviso de privacidad",
@@ -37,7 +37,7 @@ export default function PrivacidadPage() {
       <LegalSection {...section("responsable")}>
         <p>
           <strong>{LEGAL.responsable}</strong> (en adelante, «givegifts»), con domicilio en {LEGAL.domicilio}, es responsable del uso y protección de
-          tus datos personales. Para cualquier asunto de privacidad, el medio de contacto es <Mail />.
+          tus datos personales. Para cualquier asunto de privacidad, puedes escribir a <Mail /> o llamar al <Phone />.
         </p>
       </LegalSection>
 

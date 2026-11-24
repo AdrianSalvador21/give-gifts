@@ -1,9 +1,10 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { BrandBar, MineLink } from "@/components/ui/BrandBar";
+import { BackIcon } from "@/components/ui/icons";
 import { Eyebrow, ScreenTitle } from "@/components/ui/primitives";
 import { t } from "@/lib/i18n";
-import { CONTACT_EMAIL, LEGAL } from "@/lib/site";
+import { CONTACT_EMAIL, CONTACT_PHONE, CONTACT_PHONE_DISPLAY, LEGAL } from "@/lib/site";
 
 export type LegalTocItem = { id: string; title: string };
 
@@ -20,6 +21,10 @@ export function LegalPage({ title, intro, toc = [], children }: { title: string;
         <div className="mx-auto w-full max-w-[1100px] px-5 pb-14 sm:px-6 lg:px-10 lg:pb-20">
           <BrandBar action={<MineLink />} />
           <header className="flex flex-col gap-3 pt-6 lg:pt-12">
+            <Link href="/" className="-ml-1 inline-flex min-h-11 items-center gap-1.5 self-start rounded-[10px] px-1 text-[15px] font-medium underline-offset-4 hover:underline">
+              <BackIcon size={14} />
+              {t("legal.home")}
+            </Link>
             <Eyebrow>{t("legal.eyebrow")}</Eyebrow>
             <ScreenTitle>{title}</ScreenTitle>
             <p className="text-sm font-medium">{t("legal.updated", { date: LEGAL.updatedAt })}</p>
@@ -47,6 +52,9 @@ export function LegalPage({ title, intro, toc = [], children }: { title: string;
           <div className="text-[17px] leading-relaxed">{intro}</div>
           {children}
           <footer className="-mx-3 flex flex-wrap border-t border-arena pt-4 text-[15px]">
+            <Link href="/" className={FOOT_LINK}>
+              {t("legal.homeShort")}
+            </Link>
             <Link href="/privacidad" className={FOOT_LINK}>
               {t("legal.privacy")}
             </Link>
@@ -76,6 +84,14 @@ export function Mail() {
   return (
     <a href={`mailto:${CONTACT_EMAIL}`} className="font-medium underline underline-offset-4">
       {CONTACT_EMAIL}
+    </a>
+  );
+}
+
+export function Phone() {
+  return (
+    <a href={`tel:${CONTACT_PHONE}`} className="font-medium whitespace-nowrap underline underline-offset-4">
+      {CONTACT_PHONE_DISPLAY}
     </a>
   );
 }
