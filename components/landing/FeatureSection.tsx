@@ -1,6 +1,7 @@
 import Image, { type StaticImageData } from "next/image";
+import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
-import { DotButton, type DotVariant } from "@/components/ui/DotButton";
+import { ArrowIcon } from "@/components/ui/icons";
 import { Blob } from "./Decor";
 import { RevealOnce } from "./RevealOnce";
 
@@ -9,7 +10,10 @@ type Props = {
   fx: 1 | 2 | 3;
   title: string;
   text: string;
-  cta: { label: string; href: string; variant: DotVariant };
+  /** Muestra del producto que va debajo del texto (ver FeatureSamples). */
+  sample: ReactNode;
+  /** Link de texto secundario: la CTA principal vive en el hero y en el cierre. */
+  more: { label: string; href: string };
   image: { src: string | StaticImageData; width: number; height: number; alt: string; maxWidth: number };
   reverse?: boolean;
   blobStyle: CSSProperties;
@@ -18,9 +22,9 @@ type Props = {
 
 /**
  * Sección de la landing: ilustración con parallax sobre una mancha verde + tarjeta blanca
- * que entra una sola vez al aparecer en pantalla.
+ * (título, una línea, muestra del producto y link de texto) que entra una sola vez al aparecer en pantalla.
  */
-export function FeatureSection({ id, fx, title, text, cta, image, reverse, blobStyle, decor }: Props) {
+export function FeatureSection({ id, fx, title, text, sample, more, image, reverse, blobStyle, decor }: Props) {
   const m = `var(--m${fx}, 0.5)`;
 
   const art = (
@@ -32,12 +36,17 @@ export function FeatureSection({ id, fx, title, text, cta, image, reverse, blobS
   const card = (
     <div className="relative z-[2] flex min-w-0 flex-[1_1_420px] justify-center">
       <RevealOnce className="w-full max-w-[560px]">
-        <div className="flex flex-col gap-[22px] rounded-tarjeta bg-white px-6 py-9 sm:px-12 sm:py-[52px]">
+        <div className="flex flex-col gap-5 rounded-tarjeta bg-white px-6 pt-9 pb-6 sm:px-12 sm:pt-[52px] sm:pb-9">
           <h2 className="text-[clamp(36px,3.6vw,53px)] leading-[1.05] font-medium tracking-[-0.04em]">{title}</h2>
-          <p className="text-lg leading-relaxed">{text}</p>
-          <DotButton href={cta.href} variant={cta.variant} className="self-start">
-            {cta.label}
-          </DotButton>
+          <p className="text-lg leading-normal">{text}</p>
+          {sample}
+          <Link
+            href={more.href}
+            className="group inline-flex min-h-11 items-center gap-1.5 self-start font-medium underline decoration-punteado underline-offset-[6px] hover:decoration-tinta"
+          >
+            {more.label}
+            <ArrowIcon size={14} className="transition-transform duration-200 ease-rebote group-hover:translate-x-1" />
+          </Link>
         </div>
       </RevealOnce>
     </div>

@@ -17,7 +17,7 @@ function swatchFor(id: string): string {
 const BOW = "fill-crema stroke-tinta";
 
 /** Regalito para el hueco sin foto. `link` lo corre a la izquierda y le pone la insignia de eslabón. */
-function RegalitoThumb({ link }: { link: boolean }) {
+export function RegalitoThumb({ link }: { link: boolean }) {
   const dx = link ? -3 : 0;
   const dy = link ? -2 : 0;
   return (

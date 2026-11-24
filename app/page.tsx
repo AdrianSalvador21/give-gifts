@@ -1,15 +1,20 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Cloud, Dot, LogoMark, Squiggle, VerticalSquiggle } from "@/components/landing/Decor";
+import { DrawSample, MailboxSample, WishSample } from "@/components/landing/FeatureSamples";
 import { FeatureSection } from "@/components/landing/FeatureSection";
+import { FinalCta } from "@/components/landing/FinalCta";
 import { Nav } from "@/components/landing/Nav";
 import { ScrollFx } from "@/components/landing/ScrollFx";
 import { DotButton } from "@/components/ui/DotButton";
 import { AvatarStack, Eyebrow, type AvatarColor } from "@/components/ui/primitives";
 import { t } from "@/lib/i18n";
-import { CONTACT_EMAIL } from "@/lib/site";
+import { CONTACT_EMAIL, SITE_URL } from "@/lib/site";
 
 const SHEET_ID = "gg-sheet";
+
+/** Dominio que se ve en la vista previa del link del CTA final. */
+const SITE_HOST = new URL(SITE_URL).host;
 
 /** Mismo `sizes` en las dos copias de la ilustración del hero (móvil / lg) para que el navegador baje un solo archivo. */
 const HERO_SIZES = "(min-width: 1024px) 620px, 88vw";
@@ -151,7 +156,8 @@ export default function LandingPage() {
           fx={1}
           title={t("landing.draw.title")}
           text={t("landing.draw.text")}
-          cta={{ label: t("landing.draw.cta"), href: "/crear", variant: "coral" }}
+          sample={<DrawSample />}
+          more={{ label: t("landing.draw.more"), href: "/crear" }}
           image={{ src: "/illustrations/web/02-sorteo.webp", width: 823, height: 720, alt: t("landing.draw.alt"), maxWidth: 560 }}
           blobStyle={{ left: "-14%", top: -40, width: "68%" }}
           decor={<Cloud width={180} className="top-[30px] left-[44%] z-[1] animate-drift" />}
@@ -162,7 +168,8 @@ export default function LandingPage() {
           reverse
           title={t("landing.lists.title")}
           text={t("landing.lists.text")}
-          cta={{ label: t("landing.lists.cta"), href: "/crear", variant: "sol" }}
+          sample={<WishSample />}
+          more={{ label: t("landing.lists.more"), href: "/crear" }}
           image={{ src: "/illustrations/web/03-lista.webp", width: 1143, height: 674, alt: t("landing.lists.alt"), maxWidth: 620 }}
           blobStyle={{ right: "-12%", top: -60, width: "64%", transform: "scaleX(-1)" }}
           decor={<VerticalSquiggle className="top-[70px] left-[46%] z-[1] animate-sway" />}
@@ -172,7 +179,8 @@ export default function LandingPage() {
           fx={3}
           title={t("landing.secret.title")}
           text={t("landing.secret.text")}
-          cta={{ label: t("landing.secret.cta"), href: "/crear", variant: "cielo" }}
+          sample={<MailboxSample />}
+          more={{ label: t("landing.secret.more"), href: "/privacidad" }}
           image={{ src: "/illustrations/web/04-secreto.webp", width: 928, height: 542, alt: t("landing.secret.alt"), maxWidth: 580 }}
           blobStyle={{ left: "-10%", top: -20, width: "62%", transform: "rotate(18deg)" }}
           decor={<Dot color="#2BA0FF" size={26} className="top-[90px] left-[48%] z-[1] animate-bob" />}
@@ -186,22 +194,7 @@ export default function LandingPage() {
         </section>
 
         {/* CTA FINAL */}
-        <section className="mx-4 mt-16 flex flex-col items-center gap-8 rounded-hoja bg-pasto sm:mt-24 px-6 pt-20 pb-[120px] text-center">
-          <h2 className="text-[clamp(40px,9vw,130px)] leading-[0.95] font-medium tracking-[-0.06em]">
-            {t("landing.final.titleLine1")}
-            <br />
-            {t("landing.final.titleLine2")}
-          </h2>
-          <p className="max-w-[640px] text-[clamp(20px,2vw,28px)] leading-tight font-medium tracking-[-0.02em]">{t("landing.final.text")}</p>
-          <DotButton href="/crear" variant="blanco" size="lg">
-            {t("landing.final.cta")}
-          </DotButton>
-          <div className="mt-12 grid w-full max-w-[1000px] grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-6 text-xl font-medium">
-            <span>{t("landing.final.f1")}</span>
-            <span>{t("landing.final.f2")}</span>
-            <span>{t("landing.final.f3")}</span>
-          </div>
-        </section>
+        <FinalCta host={SITE_HOST} />
 
         {/* FOOTER */}
         <footer className="mx-auto flex max-w-[1296px] flex-wrap items-center justify-between gap-x-6 gap-y-3 px-6 pt-14 pb-16">
