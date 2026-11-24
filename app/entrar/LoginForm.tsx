@@ -1,52 +1,14 @@
 "use client";
 
-import { FirebaseError } from "firebase/app";
-import {
-  createUserWithEmailAndPassword,
-  GoogleAuthProvider,
-  sendPasswordResetEmail,
-  signInWithEmailAndPassword,
-  signInWithPopup,
-  signOut as clientSignOut,
-  type UserCredential,
-} from "firebase/auth";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useState, useSyncExternalStore, useTransition } from "react";
-import { createSession } from "@/app/actions/session";
+import { useState, useTransition } from "react";
 import { Alert } from "@/components/ui/Alert";
 import { CopyButton } from "@/components/ui/CopyButton";
 import { DotButton, TextButton } from "@/components/ui/DotButton";
 import { TextField } from "@/components/ui/primitives";
-import { clientAuth } from "@/lib/firebase/client";
-import { authErrorKey } from "@/lib/auth/errors";
+import { sendReset, signInEmail, signInGoogle, signUpOrSignIn, useHref, useInAppBrowser, type AuthErrorKey } from "@/lib/auth/client";
 import { t } from "@/lib/i18n";
-import { isInAppBrowser } from "@/lib/webview";
-
-function messageFor(err: unknown): string {
-  if (!(err instanceof FirebaseError)) return t("common.genericError");
-  return t(authErrorKey(err.code, isInAppBrowser(navigator.userAgent)));
-}
-
-const noopSubscribe = () => () => {};
-
-/** ¿Navegador interno (WhatsApp, Instagram…)? Solo en cliente; en el servidor y al hidratar es false. */
-function useInAppBrowser(): boolean {
-  return useSyncExternalStore(
-    noopSubscribe,
-    () => isInAppBrowser(navigator.userAgent),
-    () => false,
-  );
-}
-
-/** URL actual para copiar y abrir en Chrome/Safari. */
-function useHref(): string {
-  return useSyncExternalStore(
-    noopSubscribe,
-    () => window.location.href,
-    () => "",
-  );
-}
 
 function safeNext(next: string | null): string {
   return next && next.startsWith("/") && !next.startsWith("//") ? next : "/mis-intercambios";
@@ -61,34 +23,29 @@ export function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const inWebview = useInAppBrowser();
+  const inWebview = useInAppBrowser() !== null;
   const href = useHref();
 
-  async function finish(cred: UserCredential, displayName?: string) {
-    const idToken = await cred.user.getIdToken();
-    const res = await createSession(idToken, displayName);
-    // La app no usa la sesión del cliente: la cookie del servidor es la fuente de verdad.
-    await clientSignOut(clientAuth());
-    if (!res.ok) throw new Error(res.error === "stale" ? "stale" : "session");
-    // Navegación completa: la siguiente página lee la cookie nueva desde el servidor.
-    window.location.assign(next);
-    await new Promise(() => {}); // el botón sigue en espera hasta que cambie la página
-  }
-
-  function run(task: () => Promise<void>) {
+  function run(task: () => Promise<"ok" | AuthErrorKey>, onOk: () => void | Promise<void>) {
     setError(null);
     setNotice(null);
     startTransition(async () => {
-      try {
-        await task();
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : "";
-        setError(msg === "stale" ? t("auth.errors.stale") : msg === "session" ? t("auth.errors.session") : messageFor(err));
+      const res = await task();
+      if (res !== "ok") {
+        setError(t(res));
+        return;
       }
+      await onOk();
     });
   }
 
-  const onGoogle = () => run(async () => finish(await signInWithPopup(clientAuth(), new GoogleAuthProvider())));
+  // Navegación completa: la siguiente página lee la cookie nueva desde el servidor.
+  const goNext = async () => {
+    window.location.assign(next);
+    await new Promise(() => {}); // el botón sigue en espera hasta que cambie la página
+  };
+
+  const onGoogle = () => run(() => signInGoogle(), goNext);
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,30 +53,18 @@ export function LoginForm() {
       setError(t("auth.errors.nameRequired"));
       return;
     }
-    run(async () => {
-      if (mode === "signUp") {
-        let cred: UserCredential;
-        try {
-          cred = await createUserWithEmailAndPassword(clientAuth(), email.trim(), password);
-        } catch (err) {
-          // Si la cuenta ya existe (p. ej. un segundo clic), se intenta entrar con los mismos datos.
-          if (!(err instanceof FirebaseError && err.code === "auth/email-already-in-use")) throw err;
-          cred = await signInWithEmailAndPassword(clientAuth(), email.trim(), password).catch(() => {
-            throw err;
-          });
-        }
-        await finish(cred, name.trim());
-      } else {
-        await finish(await signInWithEmailAndPassword(clientAuth(), email.trim(), password));
-      }
-    });
+    if (mode === "signUp") {
+      // Si la cuenta ya existe y la contraseña no coincide, el mismo aviso de siempre: «Ese correo ya tiene cuenta».
+      run(async () => {
+        const res = await signUpOrSignIn(email, password, name);
+        return res === "exists" ? "auth.errors.emailInUse" : res;
+      }, goNext);
+    } else {
+      run(() => signInEmail(email, password), goNext);
+    }
   };
 
-  const onForgot = () =>
-    run(async () => {
-      await sendPasswordResetEmail(clientAuth(), email.trim());
-      setNotice(t("auth.resetSent"));
-    });
+  const onForgot = () => run(() => sendReset(email), () => setNotice(t("auth.resetSent")));
 
   const google = (
     <DotButton variant={inWebview ? "blanco" : "tinta"} ink={!inWebview} full onClick={onGoogle} disabled={pending}>

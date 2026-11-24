@@ -120,7 +120,7 @@ export default function LandingPage() {
         </div>
 
         {/* Intro + nombre del intercambio */}
-        <section className="relative z-[4] mx-auto max-w-[1296px] px-6 pt-[72px] pb-[120px] lg:pt-[96px]">
+        <section className="relative z-[4] mx-auto max-w-[1296px] px-6 pt-[72px] pb-[72px] lg:pt-[96px]">
           <div className="flex max-w-[620px] flex-col gap-9">
             <p className="text-[clamp(24px,2.4vw,33px)] leading-[1.2] font-medium tracking-[-0.03em]">{t("landing.intro.text")}</p>
             <NameForm id="gg-nombre" className="lg:hidden" />

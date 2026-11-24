@@ -2,7 +2,7 @@
 
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { redirect } from "next/navigation";
-import { requireOrganizer } from "@/lib/auth/session";
+import { getOrganizer } from "@/lib/auth/session";
 import { db, exchangesCol, participantsCol } from "@/lib/data/exchanges";
 import { DEFAULT_TIME_ZONE, type ExchangeDoc, type ParticipantDoc } from "@/lib/data/types";
 import { eventDateFrom } from "@/lib/format";
@@ -13,16 +13,31 @@ import { exchangeInput, type ExchangeInput } from "@/lib/validation/exchange";
 
 export type ActionResult = { ok: false; fieldErrors?: string[]; error?: string } | { ok: true };
 
+function fieldErrorsOf(issues: { path: PropertyKey[] }[]): string[] {
+  return [...new Set(issues.map((i) => String(i.path[0])))];
+}
+
+/**
+ * Valida el borrador del asistente antes del paso 5 «Guarda tu intercambio», sin sesión y sin tocar Firestore:
+ * así nadie crea una cuenta para luego descubrir que un campo estaba mal.
+ */
+export async function validateExchangeDraft(input: ExchangeInput): Promise<{ ok: true } | { ok: false; fieldErrors: string[] }> {
+  const parsed = exchangeInput.safeParse(input);
+  return parsed.success ? { ok: true } : { ok: false, fieldErrors: fieldErrorsOf(parsed.error.issues) };
+}
+
 /**
  * Crea el intercambio, su invitación y (si participa) al organizador como primer participante.
  * `input.timeZone` (IANA del navegador) es opcional; sin ella se usa America/Mexico_City.
+ * Sin sesión (o con la sesión vencida) no escribe nada y devuelve `error: "auth"`: el asistente pide la cuenta en el paso 5.
  * Si sale bien redirige a /crear/listo/{id}.
  */
 export async function createExchange(input: ExchangeInput): Promise<ActionResult> {
-  const organizer = await requireOrganizer("/crear");
+  const organizer = await getOrganizer();
+  if (!organizer) return { ok: false, error: "auth" };
   const parsed = exchangeInput.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, fieldErrors: [...new Set(parsed.error.issues.map((i) => String(i.path[0])))] };
+    return { ok: false, fieldErrors: fieldErrorsOf(parsed.error.issues) };
   }
   const v = parsed.data;
   const timeZone = v.timeZone || DEFAULT_TIME_ZONE;
