@@ -108,8 +108,8 @@
     "more": "+{n}"
   },
   "auth": {
-    "title": "Entra para organizar",
-    "subtitle": "Necesitas una cuenta para crear intercambios. Quienes se apunten no necesitan cuenta.",
+    "title": "Entra para ver y editar tus intercambios",
+    "subtitle": "Quienes se apunten a tus intercambios no necesitan cuenta.",
     "google": "Continuar con Google",
     "or": "o con tu correo",
     "name": "Tu nombre",
@@ -159,7 +159,7 @@
     "legalAfter": "."
   },
   "create": {
-    "step": "Paso {n} de 4",
+    "step": "Paso {n} de {total}",
     "prevStep": "Paso anterior",
     "home": "Volver al inicio",
     "s1": {
@@ -201,7 +201,11 @@
       "mailboxHint": "Pueden preguntarse tallas sin delatarse.",
       "submit": "Crear intercambio",
       "creating": "Creando…",
-      "participatesOnHint": "Entras al sorteo como uno más. Después de crear podrás llenar tu lista."
+      "participatesOnHint": "Entras al sorteo como uno más. Después de crear podrás llenar tu lista.",
+      "ownerNameHintAccount": "Así te verá el grupo. También será el nombre de tu cuenta.",
+      "lastStepHint": "Último paso: guardar tu intercambio en tu cuenta.",
+      "savedTo": "Se guardará en tu cuenta",
+      "notYou": "¿No eres tú?"
     },
     "groups": {
       "familia": "Familia",
@@ -237,8 +241,53 @@
       "name": "Nombre",
       "group": "Grupo y regalos",
       "when": "Fecha y presupuesto",
-      "details": "Últimos detalles"
-    }
+      "details": "Últimos detalles",
+      "save": "Guardar"
+    },
+    "stepLast": "Paso {n} de {total} · último",
+    "signInPrefix": "¿Ya tienes cuenta?",
+    "s5": {
+      "eyebrow": "Último paso",
+      "title": "Guarda tu intercambio.",
+      "subtitle": "Así podrás volver a verlo y editarlo desde cualquier dispositivo.",
+      "steps": "Pasos",
+      "stepCurrent": "{n} · Guardar",
+      "regalitoNote": "¡ya casi! yo lo cuido",
+      "regalitoAlt": "Regalito, la mascota de givegifts",
+      "previewLabel": "Así se verá tu invitación",
+      "summaryMeta": "{time} · hasta {budget} · organiza {owner}",
+      "budgetPill": "Hasta {budget}",
+      "ownerPill": "Organiza {owner}",
+      "edit": "Editar",
+      "editLong": "Editar datos",
+      "account": "Cuenta",
+      "google": "Continuar con Google",
+      "or": "o con tu correo",
+      "email": "Correo",
+      "emailPlaceholder": "tu@correo.com",
+      "passwordNew": "Crea una contraseña",
+      "passwordExisting": "Tu contraseña",
+      "passwordPlaceholder": "Mínimo 6 caracteres",
+      "submit": "Crear intercambio",
+      "submitExisting": "Entrar y crear intercambio",
+      "saving": "Guardando…",
+      "creating": "Creando tu intercambio…",
+      "existsTitle": "Ya tienes cuenta con este correo.",
+      "existsText": "Escribe tu contraseña para guardarlo ahí.",
+      "webview": "Estás en el navegador de {app}. Para usar Google, ábrelo en Chrome o Safari; con tu correo funciona aquí mismo.",
+      "webviewApp": "una app",
+      "forgot": "Olvidé mi contraseña",
+      "inviteesTitle": "Solo tú necesitas cuenta.",
+      "inviteesText": "Tus invitados entran con el link, sin registrarse.",
+      "sessionExpired": "Tu sesión se cerró. Entra de nuevo para guardar tu intercambio; no perdiste nada de lo que llenaste.",
+      "createFailed": "Tu cuenta quedó lista, pero no pudimos crear el intercambio. Inténtalo de nuevo.",
+      "retry": "Reintentar"
+    },
+    "draft": {
+      "resumed": "Retomamos tu borrador",
+      "startOver": "Empezar de nuevo"
+    },
+    "previewOwner": "Tu nombre"
   },
   "ready": {
     "title1": "¡Listo!",

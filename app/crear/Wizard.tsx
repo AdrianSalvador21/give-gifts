@@ -2,23 +2,28 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState, useTransition } from "react";
-import { createExchange } from "@/app/actions/exchanges";
+import { useRouter } from "next/navigation";
+import { useEffect, useState, useTransition } from "react";
+import { createExchange, validateExchangeDraft } from "@/app/actions/exchanges";
+import { signOut } from "@/app/actions/session";
 import { InviteCard } from "@/components/organizer/InviteCard";
 import { useBrowserValue } from "@/components/organizer/useBrowserValue";
 import { Alert } from "@/components/ui/Alert";
-import { DotButton } from "@/components/ui/DotButton";
+import { DotButton, TextButton } from "@/components/ui/DotButton";
 import { BackIcon } from "@/components/ui/icons";
 import { Columns } from "@/components/ui/AppShell";
-import { Chip, ScreenTitle, StepBar, TextArea, TextField } from "@/components/ui/primitives";
+import { Avatar, Chip, ScreenTitle, StepBar, TextArea, TextField } from "@/components/ui/primitives";
 import { PreviewPanel, StepRail } from "@/components/ui/Stepper";
 import { StepTransition, useStepGo } from "@/components/ui/StepTransition";
-import { GIFT_CATEGORIES, GROUP_TYPES, type GiftCategory, type GroupType } from "@/lib/data/types";
+import { GIFT_CATEGORIES, GROUP_TYPES, type GroupType } from "@/lib/data/types";
 import { t, type MessageKey } from "@/lib/i18n";
 import { exchangeFields, FIELD_ERROR, STEP_FIELDS } from "@/lib/validation/exchange";
-import { browserTimeZone, eventDateFrom, formatMoney, formatShortDate, localToday, timeZoneName } from "@/lib/format";
+import { browserTimeZone, calendarParts, eventDateFrom, formatEvent, formatMoney, formatShortDate, localToday, timeZoneName } from "@/lib/format";
+import { AccountStep } from "./AccountStep";
+import { clearDraft, readDraft, saveDraft, type DraftStep, type ExchangeFormState } from "./draft";
 
-type Step = 1 | 2 | 3 | 4;
+type Step = DraftStep;
+type FormStep = 1 | 2 | 3 | 4;
 
 const GROUP_DOT: Record<GroupType, string> = {
   familia: "bg-tinta",
@@ -32,30 +37,16 @@ const GROUP_DOT: Record<GroupType, string> = {
 const BUDGET_PRESETS = [300, 500, 800];
 
 const RAIL: MessageKey[] = ["create.rail.name", "create.rail.group", "create.rail.when", "create.rail.details"];
+const FORM_STEPS: FormStep[] = [1, 2, 3, 4];
 
-type Form = {
-  name: string;
-  groupType: GroupType | "";
-  giftCategory: GiftCategory;
-  date: string;
-  time: string;
-  place: string;
-  budget: string;
-  ownerName: string;
-  message: string;
-  ownerParticipates: boolean;
-  ownerSeesMap: boolean;
-  mailboxEnabled: boolean;
-};
+type Form = ExchangeFormState;
 
-function errorText(field: string): string {
-  return t((FIELD_ERROR[field] ?? "common.genericError") as MessageKey);
-}
+/** Quien organiza, si ya tiene sesión. Sin sesión el asistente agrega el paso 5 «Guarda tu intercambio». */
+export type WizardOrganizer = { email: string; name: string };
 
-export function Wizard({ initialName, ownerName }: { initialName: string; ownerName: string }) {
-  const [step, setStep] = useState<Step>(1);
-  const [form, setForm] = useState<Form>({
-    name: initialName,
+function initialForm(name: string, ownerName: string): Form {
+  return {
+    name,
     groupType: "",
     giftCategory: "todo",
     date: "",
@@ -67,21 +58,57 @@ export function Wizard({ initialName, ownerName }: { initialName: string; ownerN
     ownerParticipates: true,
     ownerSeesMap: false,
     mailboxEnabled: true,
-  });
+  };
+}
+
+function errorText(field: string): string {
+  return t((FIELD_ERROR[field] ?? "common.genericError") as MessageKey);
+}
+
+/**
+ * El borrador vive en localStorage, que no existe en el servidor: el asistente se monta ya en el navegador
+ * para arrancar directo con lo guardado (sin parpadeo de datos ni error de hidratación).
+ */
+export function Wizard(props: { initialName: string; organizer: WizardOrganizer | null }) {
+  const mounted = useBrowserValue(() => true, false);
+  if (!mounted) return <p className="pt-10 text-gris">{t("common.loading")}</p>;
+  return <WizardSteps {...props} />;
+}
+
+function WizardSteps({ initialName, organizer }: { initialName: string; organizer: WizardOrganizer | null }) {
+  const router = useRouter();
+  // Si hay borrador gana sobre ?nombre= de la landing; el aviso ofrece «Empezar de nuevo».
+  const [draft] = useState(readDraft);
+  const [form, setForm] = useState<Form>(() => draft?.form ?? initialForm(initialName, organizer?.name.slice(0, 40) ?? ""));
+  const [step, setStep] = useState<Step>(() => (draft ? (draft.step === 5 && organizer ? 4 : draft.step) : 1));
+  const [resumed, setResumed] = useState(draft !== null);
+  // Solo se guarda después de que la persona cambia algo: abrir /crear no deja un borrador vacío.
+  const [touched, setTouched] = useState(false);
+  // «¿No eres tú?» o sesión vencida: sin esperar al refresco del servidor, el asistente sigue sin sesión.
+  const [signedOut, setSignedOut] = useState(false);
+  // Ya se autenticó en el paso 5 pero crear falló: «Reintentar» crea directo, sin pedir la cuenta otra vez.
+  const [sessionReady, setSessionReady] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [serverError, setServerError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const go = useStepGo();
-  // Zona y fecha del navegador de quien organiza (I9, M3). En el servidor quedan vacías para no romper la hidratación.
+  // Zona y fecha del navegador de quien organiza (I9, M3).
   const timeZone = useBrowserValue(browserTimeZone, "");
   const today = useBrowserValue(() => localToday(), "");
+  const account = signedOut ? null : organizer;
+  const total = account ? 4 : 5;
+
+  useEffect(() => {
+    if (touched) saveDraft(step, form);
+  }, [touched, step, form]);
 
   const set = <K extends keyof Form>(key: K, value: Form[K]) => {
     setForm((f) => ({ ...f, [key]: value }));
     setErrors((e) => e.filter((x) => x !== key));
+    setTouched(true);
   };
 
-  function invalidFields(s: Step): string[] {
+  function invalidFields(s: FormStep): string[] {
     const bad = STEP_FIELDS[s].filter((field) => !exchangeFields[field].safeParse(form[field]).success);
     if (s === 3 && !bad.includes("date") && form.date && form.time && eventDateFrom(form.date, form.time, timeZone || undefined).getTime() <= Date.now()) {
       bad.push("date");
@@ -90,11 +117,57 @@ export function Wizard({ initialName, ownerName }: { initialName: string; ownerN
   }
 
   function goTo(target: Step) {
+    setServerError(null);
+    setTouched(true);
     go(target > step ? "adelante" : "atras", () => setStep(target));
     window.scrollTo({ top: 0 });
   }
 
+  const input = () => ({ ...form, groupType: form.groupType as GroupType, timeZone: timeZone || undefined });
+
+  /** Marca los campos con error y lleva al primer paso que tenga uno. */
+  function showFieldErrors(fields: string[]) {
+    setErrors(fields);
+    const first = FORM_STEPS.find((s) => STEP_FIELDS[s].some((f) => fields.includes(f)));
+    if (first && first !== step) goTo(first);
+    else if (!first) setServerError(t("common.genericError"));
+  }
+
+  /** Hacia el paso 5 sin sesión: el servidor valida el borrador antes de pedir la cuenta (no crea nada). */
+  async function toAccount(message: string | null = null) {
+    const res = await validateExchangeDraft(input());
+    if (!res.ok) {
+      showFieldErrors(res.fieldErrors);
+      return;
+    }
+    if (step !== 5) goTo(5);
+    setServerError(message);
+  }
+
+  function create() {
+    setServerError(null);
+    startTransition(async () => {
+      clearDraft();
+      const res = await createExchange(input());
+      // Si todo sale bien la acción redirige; aquí solo llegan errores, y el borrador vuelve a guardarse.
+      if (!res || res.ok) return;
+      saveDraft(step, form);
+      if (res.error === "auth") {
+        // Sesión vencida (o cerrada en otra pestaña): de vuelta al paso 5 para entrar de nuevo, sin perder nada.
+        setSignedOut(true);
+        setSessionReady(false);
+        router.refresh();
+        await toAccount(t("create.s5.sessionExpired"));
+      } else if (res.fieldErrors?.length) {
+        showFieldErrors(res.fieldErrors);
+      } else {
+        setServerError(t(step === 5 ? "create.s5.createFailed" : "common.genericError"));
+      }
+    });
+  }
+
   function next() {
+    if (step === 5) return;
     const bad = invalidFields(step);
     setErrors(bad);
     if (bad.length) return;
@@ -102,37 +175,130 @@ export function Wizard({ initialName, ownerName }: { initialName: string; ownerN
       goTo((step + 1) as Step);
       return;
     }
+    if (!account) {
+      setServerError(null);
+      startTransition(() => toAccount());
+      return;
+    }
+    create();
+  }
+
+  /** «¿No eres tú?»: cierra la sesión, conserva lo llenado y sigue al paso 5 para guardarlo en otra cuenta. */
+  function notYou() {
     setServerError(null);
     startTransition(async () => {
-      const res = await createExchange({ ...form, groupType: form.groupType as GroupType, timeZone: timeZone || undefined });
-      // Si todo sale bien la acción redirige; aquí solo llegan errores.
-      if (res && !res.ok) {
-        if (res.fieldErrors?.length) {
-          setErrors(res.fieldErrors);
-          const first = ([1, 2, 3, 4] as Step[]).find((s) => STEP_FIELDS[s].some((f) => res.fieldErrors!.includes(f)));
-          if (first && first !== step) goTo(first);
-          else if (!first) setServerError(t("common.genericError"));
-        } else {
-          setServerError(t("common.genericError"));
-        }
-      }
+      saveDraft(step, form);
+      await signOut();
+      setSignedOut(true);
+      router.refresh();
+      const bad = invalidFields(4);
+      setErrors(bad);
+      if (!bad.length) await toAccount();
     });
+  }
+
+  function startOver() {
+    clearDraft();
+    setForm(initialForm(initialName, account?.name.slice(0, 40) ?? ""));
+    setErrors([]);
+    setResumed(false);
+    goTo(1);
+    setTouched(false);
   }
 
   const err = (field: string) => (errors.includes(field) ? errorText(field) : null);
 
   // Vista previa en vivo (xl): lo que lleva el formulario, o «Por definir».
   const budget = Number(form.budget);
-  const previewWhen =
-    form.date && form.time && !Number.isNaN(eventDateFrom(form.date, form.time, timeZone || undefined).getTime())
-      ? formatShortDate(eventDateFrom(form.date, form.time, timeZone || undefined).toISOString(), timeZone || undefined)
-      : t("create.previewTbd");
+  const eventDate = form.date && form.time ? eventDateFrom(form.date, form.time, timeZone || undefined) : null;
+  const eventIso = eventDate && !Number.isNaN(eventDate.getTime()) ? eventDate.toISOString() : null;
+  const previewWhen = eventIso ? formatShortDate(eventIso, timeZone || undefined) : t("create.previewTbd");
   const previewGift = budget > 0 ? formatMoney(budget) : t("create.previewTbd");
+  const ownerLabel = form.ownerName.trim() || account?.name || t("create.previewOwner");
+
+  const banner = resumed && (
+    <Alert
+      tone="info"
+      className="mb-4 items-center lg:mb-6"
+      action={
+        <TextButton onClick={startOver} className="-my-2 shrink-0 px-2 font-semibold underline">
+          {t("create.draft.startOver")}
+        </TextButton>
+      }
+    >
+      {t("create.draft.resumed")}
+    </Alert>
+  );
+
+  const mobileHeader = (
+    <>
+      <div className="flex items-center justify-between pt-1 lg:hidden">
+        {step === 1 ? (
+          <Link href="/" aria-label={t("create.home")} className="grid size-11 place-items-center rounded-full bg-white transition-transform active:scale-90">
+            <BackIcon />
+          </Link>
+        ) : (
+          <button
+            type="button"
+            aria-label={t("create.prevStep")}
+            onClick={() => goTo((step - 1) as Step)}
+            className="grid size-11 place-items-center rounded-full bg-white transition-transform active:scale-90"
+          >
+            <BackIcon />
+          </button>
+        )}
+        <span className="text-sm font-medium text-gris" aria-live="polite">
+          {t(step === 5 ? "create.stepLast" : "create.step", { n: step, total })}
+        </span>
+        <span className="w-11" />
+      </div>
+      <div className="pt-3.5 lg:hidden">
+        <StepBar step={step} total={total} />
+      </div>
+    </>
+  );
+
+  if (step === 5) {
+    const cal = eventIso ? calendarParts(eventIso, timeZone || undefined) : { month: "", day: "?" };
+    return (
+      <div className="flex flex-1 flex-col pb-2 lg:pt-6">
+        {banner}
+        {mobileHeader}
+        <StepTransition stepKey={step}>
+          <div>
+            <AccountStep
+              summary={{
+                name: form.name.trim(),
+                owner: ownerLabel,
+                month: cal.month,
+                day: cal.day,
+                when: eventIso ? formatEvent(eventIso, timeZone || undefined) : t("create.previewTbd"),
+                time: form.time,
+                budget: previewGift,
+              }}
+              displayName={form.ownerName}
+              steps={RAIL.map((k) => t(k))}
+              onSelectStep={(i) => goTo((i + 1) as Step)}
+              onEdit={() => goTo(4)}
+              onAuthenticated={() => {
+                setSessionReady(true);
+                create();
+              }}
+              onRetry={create}
+              busy={pending}
+              sessionReady={sessionReady}
+              error={serverError}
+            />
+          </div>
+        </StepTransition>
+      </div>
+    );
+  }
 
   return (
     <Columns layout="wizard" className="flex-1 pb-2 lg:pt-6">
       <StepRail
-        steps={RAIL.map((k) => t(k))}
+        steps={(total === 5 ? [...RAIL, "create.rail.save" as const] : RAIL).map((k) => t(k))}
         current={step - 1}
         onSelect={(i) => goTo((i + 1) as Step)}
         art={<Image src="/illustrations/web/06-crear.webp" width={790} height={635} alt="" loading="eager" className="h-auto w-full max-w-[220px]" />}
@@ -140,29 +306,8 @@ export function Wizard({ initialName, ownerName }: { initialName: string; ownerN
       />
 
       <div className="flex min-w-0 flex-1 flex-col lg:max-w-[600px]">
-        <div className="flex items-center justify-between pt-1 lg:hidden">
-          {step === 1 ? (
-            <Link href="/" aria-label={t("create.home")} className="grid size-11 place-items-center rounded-full bg-white transition-transform active:scale-90">
-              <BackIcon />
-            </Link>
-          ) : (
-            <button
-              type="button"
-              aria-label={t("create.prevStep")}
-              onClick={() => goTo((step - 1) as Step)}
-              className="grid size-11 place-items-center rounded-full bg-white transition-transform active:scale-90"
-            >
-              <BackIcon />
-            </button>
-          )}
-          <span className="text-sm font-medium text-gris" aria-live="polite">
-            {t("create.step", { n: step })}
-          </span>
-          <span className="w-11" />
-        </div>
-        <div className="pt-3.5 lg:hidden">
-          <StepBar step={step} total={4} />
-        </div>
+        {banner}
+        {mobileHeader}
 
         <form
           className="flex flex-1 flex-col"
@@ -320,7 +465,7 @@ export function Wizard({ initialName, ownerName }: { initialName: string; ownerN
                   <TextField
                     id="c-owner"
                     label={t("create.s4.ownerName")}
-                    hint={t("create.s4.ownerNameHint")}
+                    hint={t(account ? "create.s4.ownerNameHint" : "create.s4.ownerNameHintAccount")}
                     value={form.ownerName}
                     maxLength={40}
                     onChange={(e) => set("ownerName", e.target.value)}
@@ -350,25 +495,34 @@ export function Wizard({ initialName, ownerName }: { initialName: string; ownerN
             </div>
           </StepTransition>
 
-          <div className="mt-auto flex items-center gap-4 pt-6 lg:mt-8">
-            <DotButton type="submit" ink full="mobile" disabled={pending} icon={step === 4 ? "check" : "arrow"}>
-              {step < 4 ? t("common.continue") : pending ? t("create.s4.creating") : t("create.s4.submit")}
-            </DotButton>
-            <span aria-hidden className="hidden text-sm text-gris lg:inline">
-              {t("create.enterHint")}
-            </span>
+          <div className="mt-auto flex flex-col gap-3 pt-6 lg:mt-8">
+            {step === 4 && account && (
+              <div className="flex items-center gap-3 rounded-tarjeta bg-pasto-50 px-3.5 py-3">
+                <Avatar name={account.name || account.email} color="pasto" />
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <span className="text-[13px] text-noche">{t("create.s4.savedTo")}</span>
+                  <strong className="truncate text-[15px] font-semibold">{account.email}</strong>
+                </div>
+                <TextButton onClick={notYou} disabled={pending} className="shrink-0 px-1 text-sm font-semibold underline">
+                  {t("create.s4.notYou")}
+                </TextButton>
+              </div>
+            )}
+            <div className="flex items-center gap-4">
+              <DotButton type="submit" ink full="mobile" disabled={pending} icon={step === 4 && account ? "check" : "arrow"}>
+                {step < 4 || !account ? t("common.continue") : pending ? t("create.s4.creating") : t("create.s4.submit")}
+              </DotButton>
+              <span aria-hidden className="hidden text-sm text-gris lg:inline">
+                {t("create.enterHint")}
+              </span>
+            </div>
+            {step === 4 && !account && <p className="text-center text-[13px] text-gris lg:text-left">{t("create.s4.lastStepHint")}</p>}
           </div>
         </form>
       </div>
 
       <PreviewPanel label={t("create.previewLabel")}>
-        <InviteCard
-          owner={form.ownerName.trim() || ownerName}
-          name={form.name.trim() || t("create.previewName")}
-          message={form.message.trim()}
-          when={previewWhen}
-          gift={previewGift}
-        />
+        <InviteCard owner={ownerLabel} name={form.name.trim() || t("create.previewName")} message={form.message.trim()} when={previewWhen} gift={previewGift} />
       </PreviewPanel>
     </Columns>
   );
