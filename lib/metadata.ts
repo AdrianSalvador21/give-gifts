@@ -1,5 +1,7 @@
 import "server-only";
 
+import { fetchPublicHtml, isPrivateHostname } from "@/lib/server/safe-fetch";
+
 export type LinkMetadata = { url: string; title: string; imageUrl: string | null; price: number | null; store: string };
 
 const UA =
@@ -62,16 +64,6 @@ function cleanTitle(title: string | null): string | null {
     .trim();
 }
 
-function isPrivateHost(host: string): boolean {
-  const h = host.toLowerCase().replace(/^\[|\]$/g, "");
-  if (h === "localhost" || h.endsWith(".localhost") || h.endsWith(".internal") || h.endsWith(".local") || !h.includes(".")) return true;
-  if (h.includes(":")) return h === "::1" || h.startsWith("fc") || h.startsWith("fd") || h.startsWith("fe80") || h.startsWith("::ffff:");
-  const ip = h.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
-  if (!ip) return false;
-  const [a, b] = [Number(ip[1]), Number(ip[2])];
-  return a === 0 || a === 10 || a === 127 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 100 && b >= 64 && b <= 127);
-}
-
 /** "www.amazon.com.mx" → "amazon.com.mx" */
 export function storeFrom(url: URL): string {
   return url.hostname.replace(/^www\./, "");
@@ -123,29 +115,6 @@ function titleFromPath(url: URL): string | null {
   return best && best.length >= 6 ? (best.charAt(0).toUpperCase() + best.slice(1)).slice(0, 120) : null;
 }
 
-/** Lee el cuerpo poco a poco y se queda con lo que llegó si se acaba el tiempo o el límite. */
-async function readPartial(res: Response, deadline: number, maxBytes: number): Promise<string> {
-  if (!res.body) return "";
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  let html = "";
-  let bytes = 0;
-  try {
-    while (bytes < maxBytes && Date.now() < deadline) {
-      const left = deadline - Date.now();
-      const chunk = await Promise.race([reader.read(), new Promise<null>((r) => setTimeout(() => r(null), left))]);
-      if (!chunk || chunk.done) break;
-      bytes += chunk.value.byteLength;
-      html += decoder.decode(chunk.value, { stream: true });
-    }
-  } catch {
-    // Conexión cortada: se usa lo que haya llegado.
-  } finally {
-    reader.cancel().catch(() => {});
-  }
-  return html;
-}
-
 /**
  * Lee título, imagen y precio de una página de producto (Open Graph, JSON-LD y Amazon). Nunca lanza:
  * si la tienda bloquea o tarda, usa el nombre que venga en la ruta del link o, al final, el dominio.
@@ -162,23 +131,24 @@ export async function fetchLinkMetadata(rawUrl: string): Promise<LinkMetadata | 
   const store = storeFrom(url);
   const fallback: LinkMetadata = { url: url.toString(), title: titleFromPath(original) ?? store, imageUrl: null, price: null, store };
   // El servidor no debe pedir direcciones internas (SSRF): se guarda el link sin leerlo.
-  if (isPrivateHost(url.hostname)) return fallback;
+  // fetchPublicHtml vuelve a validar cada redirección y la IP real al conectar.
+  if (isPrivateHostname(url.hostname)) return fallback;
 
   try {
-    const deadline = Date.now() + 8000;
-    const res = await fetch(url, {
+    // Páginas como Amazon pesan >2 MB: lo útil está en el primer 1.2 MB.
+    const page = await fetchPublicHtml(url, {
+      maxRedirects: 3,
+      totalMs: 8000,
+      maxBytes: 1_200_000,
       headers: {
         "user-agent": UA,
         "accept-language": "es-MX,es;q=0.9",
         accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
       },
-      redirect: "follow",
-      signal: AbortSignal.timeout(6000),
     });
-    if (!res.ok || !(res.headers.get("content-type") ?? "").includes("html")) return fallback;
-    // Páginas como Amazon pesan >2 MB: lo útil está en el primer 1.2 MB.
-    const html = await readPartial(res, deadline, 1_200_000);
-    if (isBlockedPage(res.url, html)) return fallback;
+    if (!page) return fallback;
+    const { html } = page;
+    if (isBlockedPage(page.url, html)) return fallback;
     const product = jsonLdProduct(html);
     const titleTag = html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1];
     // Amazon: #productTitle es el nombre limpio, sin el sufijo de la tienda.
@@ -217,7 +187,8 @@ export async function fetchLinkMetadata(rawUrl: string): Promise<LinkMetadata | 
       price: Number.isFinite(price) && price > 0 ? Math.round(price * 100) / 100 : null,
       store,
     };
-  } catch {
+  } catch (err) {
+    console.error("[fetchLinkMetadata]", err);
     return fallback;
   }
 }

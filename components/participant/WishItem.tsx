@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { deleteWish, updateWish } from "@/app/actions/wishes";
+import { Alert } from "@/components/ui/Alert";
+import { ConfirmDialog } from "@/components/ui/Dialog";
 import { StarIcon, TrashIcon } from "@/components/ui/icons";
 import { TextField } from "@/components/ui/primitives";
 import type { Wish } from "@/lib/data/types";
@@ -17,6 +19,9 @@ export function WishItem({ wish, index, inviteCode, token }: { wish: Wish; index
   const [url, setUrl] = useState(wish.url ?? "");
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  const [confirming, setConfirming] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleting, startDelete] = useTransition();
 
   // Al abrir la edición se parte de lo guardado (pudo cambiar tras agregar un link).
   const startEditing = () => {
@@ -30,9 +35,14 @@ export function WishItem({ wish, index, inviteCode, token }: { wish: Wish; index
 
   const run = (task: () => Promise<{ ok: boolean; error?: string }>, after?: () => void) =>
     start(async () => {
-      const res = await task();
-      const known = res.error === "title" || res.error === "note" || res.error === "price" || res.error === "url";
-      if (!res.ok) setError(t(`list.errors.${known ? (res.error as "title" | "note" | "price" | "url") : "generic"}`));
+      let res: { ok: boolean; error?: string };
+      try {
+        res = await task();
+      } catch {
+        res = { ok: false, error: "generic" };
+      }
+      const known = res.error === "title" || res.error === "note" || res.error === "price" || res.error === "url" || res.error === "rate";
+      if (!res.ok) setError(t(`list.errors.${known ? (res.error as "title" | "note" | "price" | "url" | "rate") : "generic"}`));
       else {
         setError(null);
         after?.();
@@ -40,9 +50,9 @@ export function WishItem({ wish, index, inviteCode, token }: { wish: Wish; index
     });
 
   return (
-    <li className={`flex flex-col gap-2.5 rounded-tarjeta bg-white p-3.5 ${pending ? "opacity-60" : ""}`}>
-      <div className="flex items-center gap-3">
-        <WishThumb wish={wish} index={index} />
+    <li className={`relative flex flex-col gap-2.5 rounded-tarjeta bg-white p-3.5 transition-opacity ${pending || deleting ? "opacity-60" : ""}`}>
+      <div className="flex items-center gap-3 sm:flex-col sm:items-stretch">
+        <WishThumb wish={wish} index={index} size="tarjeta" />
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="text-base leading-snug font-medium">{wish.title}</span>
           <span className="truncate text-[13px] text-gris">{wishMeta(wish)}</span>
@@ -52,7 +62,7 @@ export function WishItem({ wish, index, inviteCode, token }: { wish: Wish; index
           aria-label={wish.favorite ? t("list.unfavorite") : t("list.favorite")}
           aria-pressed={wish.favorite}
           onClick={() => run(() => updateWish(inviteCode, token, wish.id, { favorite: !wish.favorite }))}
-          className={`grid size-11 shrink-0 place-items-center rounded-full ${wish.favorite ? "bg-pasto" : "bg-crema"}`}
+          className={`grid size-11 shrink-0 place-items-center rounded-full transition-transform active:scale-90 sm:absolute sm:top-5 sm:right-5 ${wish.favorite ? "bg-pasto" : "bg-crema"}`}
         >
           <StarIcon size={18} filled={wish.favorite} />
         </button>
@@ -91,7 +101,7 @@ export function WishItem({ wish, index, inviteCode, token }: { wish: Wish; index
           />
           <TextField id={`w-note-${wish.id}`} label={t("list.noteLabel")} placeholder={t("list.notePlaceholder")} value={note} maxLength={200} onChange={(e) => setNote(e.target.value)} />
           <TextField id={`w-price-${wish.id}`} label={t("list.priceLabel")} inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} />
-          {error && <p className="text-sm text-[#B23A2A]">{error}</p>}
+          {error && <Alert tone="error">{error}</Alert>}
           <div className="flex gap-2">
             <button type="submit" disabled={pending} className="h-11 flex-1 rounded-boton bg-tinta font-medium text-white">
               {pending ? t("list.saving") : t("list.save")}
@@ -102,31 +112,55 @@ export function WishItem({ wish, index, inviteCode, token }: { wish: Wish; index
           </div>
         </form>
       ) : (
-        <div className="mt-auto flex items-center gap-4 text-sm font-medium">
-          <button type="button" onClick={startEditing} className="underline underline-offset-4">
+        <div className="mt-auto flex items-center gap-3 text-sm font-medium">
+          <button type="button" onClick={startEditing} className="min-h-11 underline underline-offset-4">
             {t("list.edit")}
           </button>
           {!wish.url && (
-            <button type="button" onClick={startEditing} className="underline underline-offset-4">
+            <button type="button" onClick={startEditing} className="min-h-11 underline underline-offset-4">
               {t("list.addLink")}
             </button>
           )}
           {wish.url && (
-            <a href={wish.url} target="_blank" rel="noopener noreferrer nofollow" className="underline underline-offset-4">
-              {t("list.openStore", { store: wish.store ?? "" })}
+            <a href={wish.url} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex min-h-11 min-w-0 items-center underline underline-offset-4">
+              {/* El recorte va en un hijo: en un inline-flex el texto no muestra «…» y se corta en seco. */}
+              <span className="truncate">{t("list.openStore", { store: wish.store ?? "" })}</span>
             </a>
           )}
           <button
             type="button"
             aria-label={t("list.delete")}
-            onClick={() => run(() => deleteWish(inviteCode, token, wish.id))}
-            className="ml-auto grid size-10 place-items-center rounded-full text-gris hover:bg-crema"
+            onClick={() => {
+              setDeleteError(null);
+              setConfirming(true);
+            }}
+            className="ml-auto grid size-11 place-items-center rounded-full text-gris transition-colors hover:bg-crema hover:text-coral-700"
           >
             <TrashIcon size={18} />
           </button>
         </div>
       )}
-      {error && !editing && <p className="text-sm text-[#B23A2A]">{error}</p>}
+      {error && !editing && <Alert tone="error">{error}</Alert>}
+      <ConfirmDialog
+        open={confirming}
+        onClose={() => setConfirming(false)}
+        title={t("list.deleteTitle", { title: wish.title.length > 60 ? `${wish.title.slice(0, 57)}…` : wish.title })}
+        description={t("list.deleteText")}
+        confirmLabel={t("list.deleteYes")}
+        pending={deleting}
+        error={deleteError}
+        onConfirm={() =>
+          startDelete(async () => {
+            try {
+              const res = await deleteWish(inviteCode, token, wish.id);
+              if (res.ok) setConfirming(false);
+              else setDeleteError(t("list.errors.generic"));
+            } catch {
+              setDeleteError(t("list.errors.generic"));
+            }
+          })
+        }
+      />
     </li>
   );
 }

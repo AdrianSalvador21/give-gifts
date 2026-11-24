@@ -1,24 +1,31 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { BrandBar } from "@/components/ui/BrandBar";
-import { Screen, TopBar } from "@/components/ui/primitives";
+import { ParticipantLoading } from "@/components/participant/Loading";
+import { ParticipantTop } from "@/components/participant/ParticipantTop";
+import { Alert } from "@/components/ui/Alert";
+import { AppShell } from "@/components/ui/AppShell";
+import { PageTransition } from "@/components/ui/Transitions";
 import { requireParticipant } from "@/lib/data/access";
 import { getMyAssignment, getThreadRef, getUnread, markRead, readMessages, type MailboxMessage, type MailboxRole } from "@/lib/data/gifts";
 import { t } from "@/lib/i18n";
+import { backTarget, parseDesde, withDesde } from "@/lib/nav";
 import { Mailbox } from "./Mailbox";
 
 export const metadata: Metadata = { title: "Buzón anónimo", robots: { index: false } };
 
-async function MailboxPage({ params }: { params: Promise<{ inviteCode: string; token: string }> }) {
-  const { exchange, me, inviteCode, token, base } = await requireParticipant(params);
-  if (exchange.status !== "drawn") redirect(base);
+async function MailboxPage({ params, searchParams }: { params: Promise<{ inviteCode: string; token: string }>; searchParams: Promise<{ desde?: string | string[] }> }) {
+  const [{ exchange, me, inviteCode, token, base }, sp] = await Promise.all([requireParticipant(params), searchParams]);
+  const desde = parseDesde(sp.desde);
+  const back = backTarget({ desde, isOwner: me.kind === "owner", base, exchangeId: exchange.id });
+  if (exchange.status !== "drawn") redirect(back.href);
   if (!exchange.rules.mailboxEnabled) {
     return (
       <>
-        <BrandBar className="pt-2" />
-        <TopBar backHref={base} title={t("mailbox.title")} />
-        <p className="mt-10 rounded-boton bg-white px-4 py-3.5 text-[15px]">{t("mailbox.closed")}</p>
+        <ParticipantTop exchangeName={exchange.name} backHref={back.href} backLabel={back.label} />
+        <Alert tone="info" className="mt-8 max-w-[520px] text-[15px]">
+          {t("mailbox.closed")}
+        </Alert>
       </>
     );
   }
@@ -42,8 +49,11 @@ async function MailboxPage({ params }: { params: Promise<{ inviteCode: string; t
 
   return (
     <>
-      <BrandBar className="pt-2" />
-      <TopBar backHref={me.revealed ? `${base}/persona` : base} title={t("mailbox.title")} />
+      <ParticipantTop
+        exchangeName={exchange.name}
+        backHref={me.revealed ? withDesde(`${base}/persona`, desde) : back.href}
+        backLabel={me.revealed ? t("person.title") : back.label}
+      />
       <Mailbox
         inviteCode={inviteCode}
         token={token}
@@ -51,17 +61,20 @@ async function MailboxPage({ params }: { params: Promise<{ inviteCode: string; t
         initial={{ giver: asGiver, receiver: asReceiver }}
         initialRole={initialRole}
         initialUnread={unread}
+        timeZone={exchange.timeZone}
       />
     </>
   );
 }
 
-export default function BuzonPage({ params }: PageProps<"/i/[inviteCode]/p/[token]/buzon">) {
+export default function BuzonPage({ params, searchParams }: PageProps<"/i/[inviteCode]/p/[token]/buzon">) {
   return (
-    <Screen>
-      <Suspense fallback={<p className="pt-10 text-gris">{t("common.loading")}</p>}>
-        <MailboxPage params={params} />
-      </Suspense>
-    </Screen>
+    <PageTransition>
+      <AppShell variant="tablero">
+        <Suspense fallback={<ParticipantLoading />}>
+          <MailboxPage params={params} searchParams={searchParams} />
+        </Suspense>
+      </AppShell>
+    </PageTransition>
   );
 }

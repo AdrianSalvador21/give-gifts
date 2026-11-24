@@ -45,7 +45,7 @@ export function Nav({ sheetId }: { sheetId: string }) {
       <div className="mx-auto flex max-w-[1296px] items-start gap-3 px-4 pt-4 sm:px-6">
         <nav aria-label={t("nav.main")} className={`min-w-0 flex-1 rounded-boton ${surface}`}>
           <div className="flex h-[68px] items-center justify-between gap-4 pr-3 pl-[18px]">
-            <Link href="/" className="flex items-center gap-2.5 no-underline">
+            <Link href="/" className="flex min-h-11 items-center gap-2.5 no-underline">
               <LogoMark />
               <span className="text-[25px] font-medium tracking-[-0.04em]">{t("brand.name")}</span>
             </Link>

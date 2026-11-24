@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { addAssisted } from "@/app/actions/organizer";
+import { Alert } from "@/components/ui/Alert";
 import { PlusIcon } from "@/components/ui/icons";
 import { t } from "@/lib/i18n";
 
@@ -19,7 +20,7 @@ export function AddAssistedForm({ exchangeId }: { exchangeId: string }) {
         start(async () => {
           const res = await addAssisted(exchangeId, name);
           if (res.ok) setName("");
-          else setError(t(`panel.errors.${res.error === "name" || res.error === "taken" || res.error === "closed" ? res.error : "generic"}`));
+          else setError(t(`panel.errors.${res.error === "name" || res.error === "taken" || res.error === "closed" || res.error === "full" || res.error === "paused" ? res.error : "generic"}`));
         });
       }}
     >
@@ -34,15 +35,19 @@ export function AddAssistedForm({ exchangeId }: { exchangeId: string }) {
           value={name}
           maxLength={40}
           placeholder={t("panel.addAssistedLabel")}
-          onChange={(e) => setName(e.target.value)}
-          className="h-12 min-w-0 flex-1 rounded-boton border-2 border-transparent bg-crema px-4 text-base outline-none focus:border-tinta"
+          onChange={(e) => {
+            setName(e.target.value);
+            setError(null);
+          }}
+          className="h-12 min-w-0 flex-1 rounded-boton border-2 border-transparent bg-crema px-4 text-base outline-none focus:border-tinta aria-invalid:border-coral"
+          aria-invalid={error ? true : undefined}
         />
-        <button type="submit" disabled={pending} className="flex h-12 shrink-0 items-center gap-1.5 rounded-boton bg-tinta px-4 font-medium text-white disabled:opacity-50">
+        <button type="submit" disabled={pending} className="flex h-12 shrink-0 items-center gap-1.5 rounded-boton bg-tinta px-4 font-medium text-white transition-transform active:scale-[0.98] disabled:opacity-50">
           <PlusIcon size={16} />
           {t("panel.addAssisted")}
         </button>
       </div>
-      {error && <p className="text-sm text-[#B23A2A]">{error}</p>}
+      {error && <Alert tone="error">{error}</Alert>}
     </form>
   );
 }

@@ -45,7 +45,7 @@ Por imagen: ubicación · idea central · tipo de escena · qué hace Regalito �
    ```bash
    node .claude/skills/regalito-ilustraciones/scripts/generar.mjs \
      --prompt-file <ruta-prompt.txt> \
-     --out public/illustrations/<conjunto>/<NN-nombre>.png \
+     --out design/illustrations/<conjunto>/<NN-nombre>.png \
      --ref .claude/skills/regalito-ilustraciones/mascota/regalito-ref.blanco.png \
      --transparent --size 1536x1024 --quality high
    ```
@@ -57,7 +57,8 @@ Por imagen: ubicación · idea central · tipo de escena · qué hace Regalito �
 
 ### 4. Entrega
 
-- Rutas finales en `public/illustrations/<conjunto>/` (`01-…png`, `02-…png`).
+- Fuentes (PNG grandes, `.blanco.png` y `.prompt.txt`) en `design/illustrations/<conjunto>/` (`01-…png`, `02-…png`). Esa carpeta **no** se publica: nunca guardes fuentes ni prompts en `public/`.
+- Para usarla en la web, exporta una versión WebP recortada y ligera a `public/illustrations/web/<NN-nombre>.webp` (con un script de `sharp`, ya en devDependencies: `sharp(src).trim().resize({ width: 1200, withoutEnlargement: true }).webp({ quality: 82 })`). Las páginas sólo deben referenciar `public/illustrations/web/*.webp`.
 - Para cada imagen: para qué sirve, ruta, si quedó firme u opcional.
 - No borres versiones anteriores salvo que el usuario lo pida.
 

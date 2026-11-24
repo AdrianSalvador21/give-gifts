@@ -46,15 +46,16 @@ export function Blob({ className = "", style }: DecorProps) {
   );
 }
 
-/** Logotipo: Regalito mini (cajita tinta con moño verde y ojitos). */
-export function LogoMark() {
+/** Logotipo: Regalito mini (cajita tinta con moño verde y ojitos). `onDark`: cajita pasto para fondos tinta (sidebar). */
+export function LogoMark({ onDark = false }: { onDark?: boolean }) {
+  const eye = onDark ? "bg-tinta" : "bg-white";
   return (
-    <span aria-hidden className="relative block size-9 rounded-[10px] bg-tinta">
+    <span aria-hidden className={`relative block size-9 rounded-[10px] ${onDark ? "bg-pasto" : "bg-tinta"}`}>
       <svg width="26" height="16" viewBox="0 0 26 16" className="absolute -top-[9px] left-[5px]">
         <path d="M13 13 C 8 3, 1 4, 2 9 C 3 14, 9 14, 13 13 Z M13 13 C 18 3, 25 4, 24 9 C 23 14, 17 14, 13 13 Z" fill="#8ED462" stroke="#2C2E2A" strokeWidth="1.5" />
       </svg>
-      <span className="absolute top-[15px] left-[10px] size-[5px] rounded-full bg-white" />
-      <span className="absolute top-[15px] left-[21px] size-[5px] rounded-full bg-white" />
+      <span className={`absolute top-[15px] left-[10px] size-[5px] rounded-full ${eye}`} />
+      <span className={`absolute top-[15px] left-[21px] size-[5px] rounded-full ${eye}`} />
     </span>
   );
 }

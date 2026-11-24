@@ -23,7 +23,10 @@ export const getOrganizer = cache(async (): Promise<Organizer | null> => {
       email: claims.email ?? "",
       name: (claims.name as string | undefined) ?? claims.email?.split("@")[0] ?? "",
     };
-  } catch {
+  } catch (err) {
+    // Cookie vencida o revocada es lo normal al cerrar sesión o pasar 14 días; lo demás sí se registra.
+    const code = (err as { code?: string }).code ?? "";
+    if (!/session-cookie-(expired|revoked)|argument-error|user-disabled|user-not-found/.test(code)) console.error("[getOrganizer]", err);
     return null;
   }
 });

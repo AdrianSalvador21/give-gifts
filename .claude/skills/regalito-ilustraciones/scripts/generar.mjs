@@ -2,7 +2,7 @@
 // Genera o edita una ilustración con la API de imágenes de OpenAI.
 //
 // Uso:
-//   node generar.mjs --prompt-file p.txt --out public/illustrations/x/01-a.png
+//   node generar.mjs --prompt-file p.txt --out design/illustrations/x/01-a.png
 //                    [--ref ref.png ...] [--edit base.png] [--transparent]
 //                    [--size 1536x1024] [--quality high] [--model gpt-image-2] [--dry-run]
 //

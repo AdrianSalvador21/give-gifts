@@ -10,30 +10,42 @@ import {
   signOut as clientSignOut,
   type UserCredential,
 } from "firebase/auth";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState, useSyncExternalStore, useTransition } from "react";
 import { createSession } from "@/app/actions/session";
-import { DotButton } from "@/components/ui/DotButton";
+import { Alert } from "@/components/ui/Alert";
+import { CopyButton } from "@/components/ui/CopyButton";
+import { DotButton, TextButton } from "@/components/ui/DotButton";
 import { TextField } from "@/components/ui/primitives";
 import { clientAuth } from "@/lib/firebase/client";
-import { t, type MessageKey } from "@/lib/i18n";
-
-const ERRORS: Record<string, MessageKey> = {
-  "auth/invalid-credential": "auth.errors.invalid",
-  "auth/wrong-password": "auth.errors.invalid",
-  "auth/user-not-found": "auth.errors.invalid",
-  "auth/email-already-in-use": "auth.errors.emailInUse",
-  "auth/weak-password": "auth.errors.weakPassword",
-  "auth/invalid-email": "auth.errors.invalidEmail",
-  "auth/missing-email": "auth.errors.invalidEmail",
-  "auth/popup-closed-by-user": "auth.errors.popupClosed",
-  "auth/cancelled-popup-request": "auth.errors.popupClosed",
-  "auth/too-many-requests": "auth.errors.tooMany",
-};
+import { authErrorKey } from "@/lib/auth/errors";
+import { t } from "@/lib/i18n";
+import { isInAppBrowser } from "@/lib/webview";
 
 function messageFor(err: unknown): string {
-  if (err instanceof FirebaseError && ERRORS[err.code]) return t(ERRORS[err.code]);
-  return t("common.genericError");
+  if (!(err instanceof FirebaseError)) return t("common.genericError");
+  return t(authErrorKey(err.code, isInAppBrowser(navigator.userAgent)));
+}
+
+const noopSubscribe = () => () => {};
+
+/** ¿Navegador interno (WhatsApp, Instagram…)? Solo en cliente; en el servidor y al hidratar es false. */
+function useInAppBrowser(): boolean {
+  return useSyncExternalStore(
+    noopSubscribe,
+    () => isInAppBrowser(navigator.userAgent),
+    () => false,
+  );
+}
+
+/** URL actual para copiar y abrir en Chrome/Safari. */
+function useHref(): string {
+  return useSyncExternalStore(
+    noopSubscribe,
+    () => window.location.href,
+    () => "",
+  );
 }
 
 function safeNext(next: string | null): string {
@@ -49,13 +61,15 @@ export function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const inWebview = useInAppBrowser();
+  const href = useHref();
 
   async function finish(cred: UserCredential, displayName?: string) {
     const idToken = await cred.user.getIdToken();
     const res = await createSession(idToken, displayName);
     // La app no usa la sesión del cliente: la cookie del servidor es la fuente de verdad.
     await clientSignOut(clientAuth());
-    if (!res.ok) throw new Error("session");
+    if (!res.ok) throw new Error(res.error === "stale" ? "stale" : "session");
     // Navegación completa: la siguiente página lee la cookie nueva desde el servidor.
     window.location.assign(next);
     await new Promise(() => {}); // el botón sigue en espera hasta que cambie la página
@@ -68,7 +82,8 @@ export function LoginForm() {
       try {
         await task();
       } catch (err) {
-        setError(err instanceof Error && err.message === "session" ? t("auth.errors.session") : messageFor(err));
+        const msg = err instanceof Error ? err.message : "";
+        setError(msg === "stale" ? t("auth.errors.stale") : msg === "session" ? t("auth.errors.session") : messageFor(err));
       }
     });
   }
@@ -106,17 +121,33 @@ export function LoginForm() {
       setNotice(t("auth.resetSent"));
     });
 
-  return (
-    <div className="flex flex-col gap-5">
-      <DotButton variant="tinta" full onClick={onGoogle} disabled={pending}>
-        {t("auth.google")}
-      </DotButton>
+  const google = (
+    <DotButton variant={inWebview ? "blanco" : "tinta"} ink={!inWebview} full onClick={onGoogle} disabled={pending}>
+      {t("auth.google")}
+    </DotButton>
+  );
 
-      <div className="flex items-center gap-3 text-sm text-gris">
-        <span className="h-px flex-1 bg-arena" />
-        {t("auth.or")}
-        <span className="h-px flex-1 bg-arena" />
-      </div>
+  return (
+    <div className="mt-6 flex flex-col gap-5">
+      {inWebview && (
+        <Alert tone="aviso" title={t("auth.webviewTitle")}>
+          <p>{t("auth.webviewText")}</p>
+          <div className="mt-2.5 flex flex-wrap">
+            <CopyButton text={href} label={t("auth.webviewCopy")} />
+          </div>
+        </Alert>
+      )}
+
+      {/* En un navegador interno Google no deja entrar: el correo va primero y Google queda abajo, sin protagonismo. */}
+      {!inWebview && google}
+
+      {!inWebview && (
+        <div className="flex items-center gap-3 text-sm text-gris">
+          <span className="h-px flex-1 bg-arena" />
+          {t("auth.or")}
+          <span className="h-px flex-1 bg-arena" />
+        </div>
+      )}
 
       <form onSubmit={onSubmit} className="flex flex-col gap-3.5" noValidate>
         {mode === "signUp" && (
@@ -133,39 +164,44 @@ export function LoginForm() {
           minLength={6}
           required
         />
-        {error && (
-          <p role="alert" className="rounded-boton bg-white px-4 py-3 text-sm text-[#B23A2A]">
-            {error}
-          </p>
-        )}
-        {notice && (
-          <p role="status" className="rounded-boton bg-white px-4 py-3 text-sm">
-            {notice}
-          </p>
-        )}
-        <DotButton type="submit" variant="pasto" full disabled={pending} aria-live="polite">
+        {error && <Alert tone="error">{error}</Alert>}
+        {notice && <Alert tone="exito">{notice}</Alert>}
+        <DotButton type="submit" variant={inWebview ? "tinta" : "pasto"} ink={inWebview} full disabled={pending} aria-live="polite">
           {mode === "signUp" ? (pending ? t("auth.creating") : t("auth.signUp")) : pending ? t("auth.signingIn") : t("auth.signIn")}
         </DotButton>
       </form>
 
-      <div className="flex flex-col items-center gap-2 text-[15px] font-medium">
-        <button
-          type="button"
-          className="underline underline-offset-4"
+      {inWebview && google}
+
+      <div className="flex flex-col items-center text-[15px]">
+        <TextButton
           onClick={() => {
             setMode(mode === "signIn" ? "signUp" : "signIn");
             setError(null);
             setNotice(null);
           }}
+          className="underline"
         >
           {mode === "signIn" ? t("auth.toSignUp") : t("auth.toSignIn")}
-        </button>
+        </TextButton>
         {mode === "signIn" && (
-          <button type="button" className="text-gris underline underline-offset-4" onClick={onForgot} disabled={pending}>
+          <TextButton className="text-gris underline" onClick={onForgot} disabled={pending}>
             {t("auth.forgot")}
-          </button>
+          </TextButton>
         )}
       </div>
+
+      <p className="text-center text-[13px] leading-snug text-gris">
+        {t("auth.legalBefore")}
+        <Link href="/terminos" className="font-medium text-tinta underline underline-offset-2">
+          {t("auth.legalTerms")}
+        </Link>
+        {t("auth.legalMiddle")}
+        <Link href="/privacidad" className="font-medium text-tinta underline underline-offset-2">
+          {t("auth.legalPrivacy")}
+        </Link>
+        {t("auth.legalAfter")}
+      </p>
     </div>
   );
 }

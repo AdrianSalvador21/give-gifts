@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { GIFT_CATEGORIES, GROUP_TYPES } from "@/lib/data/types";
-import { eventDateFrom } from "@/lib/format";
+import { eventDateFrom, isValidTimeZone } from "@/lib/format";
 
 // Se usa igual en el asistente (cliente) y en la Server Action (servidor).
 export const exchangeFields = {
@@ -16,16 +16,18 @@ export const exchangeFields = {
   ownerParticipates: z.boolean(),
   ownerSeesMap: z.boolean(),
   mailboxEnabled: z.boolean(),
+  // Zona IANA del navegador de quien organiza (input oculto). Opcional: sin ella, hora del centro de México.
+  timeZone: z.string().max(64).refine(isValidTimeZone).optional(),
 };
 
 export const exchangeInput = z
   .object(exchangeFields)
-  .refine((v) => eventDateFrom(v.date, v.time).getTime() > Date.now(), { path: ["date"] });
+  .refine((v) => eventDateFrom(v.date, v.time, v.timeZone).getTime() > Date.now(), { path: ["date"] });
 
 export type ExchangeInput = z.input<typeof exchangeInput>;
 
 /** Campos que valida cada paso del asistente. */
-export const STEP_FIELDS: Record<1 | 2 | 3 | 4, (keyof typeof exchangeFields)[]> = {
+export const STEP_FIELDS: Record<1 | 2 | 3 | 4, Exclude<keyof typeof exchangeFields, "timeZone">[]> = {
   1: ["name"],
   2: ["groupType", "giftCategory"],
   3: ["date", "time", "place", "budget"],

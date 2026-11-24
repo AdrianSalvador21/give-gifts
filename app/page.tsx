@@ -1,14 +1,57 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Cloud, Dot, Squiggle, VerticalSquiggle } from "@/components/landing/Decor";
+import { Cloud, Dot, LogoMark, Squiggle, VerticalSquiggle } from "@/components/landing/Decor";
 import { FeatureSection } from "@/components/landing/FeatureSection";
 import { Nav } from "@/components/landing/Nav";
 import { ScrollFx } from "@/components/landing/ScrollFx";
-import { ArrowIcon } from "@/components/ui/icons";
 import { DotButton } from "@/components/ui/DotButton";
+import { AvatarStack, Eyebrow, type AvatarColor } from "@/components/ui/primitives";
 import { t } from "@/lib/i18n";
+import { CONTACT_EMAIL } from "@/lib/site";
 
 const SHEET_ID = "gg-sheet";
+
+/** Mismo `sizes` en las dos copias de la ilustración del hero (móvil / lg) para que el navegador baje un solo archivo. */
+const HERO_SIZES = "(min-width: 1024px) 620px, 88vw";
+
+/** Pila decorativa del hero (aria-hidden): sólo ilustra el grupo. */
+const HERO_PEOPLE: { name: string; color: AvatarColor }[] = [
+  { name: "A M", color: "sol" },
+  { name: "L P", color: "cielo" },
+  { name: "J R", color: "coral" },
+];
+
+const FOOTER_LINKS = [
+  { href: "#pasos", label: t("nav.how") },
+  { href: "/privacidad", label: t("landing.footer.privacy") },
+  { href: "/terminos", label: t("landing.footer.terms") },
+  { href: `mailto:${CONTACT_EMAIL}`, label: t("landing.footer.contact") },
+];
+
+const FOOTER_LINK = "inline-flex min-h-11 items-center px-3 underline decoration-gris underline-offset-[6px] hover:decoration-tinta";
+
+/** «Ponle nombre a tu intercambio» → /crear?nombre=… (funciona sin JS). */
+function NameForm({ id, ink, className = "" }: { id: string; ink?: boolean; className?: string }) {
+  return (
+    <form action="/crear" method="get" className={`flex flex-wrap gap-3 ${className}`}>
+      <label htmlFor={id} className="sr-only">
+        {t("landing.intro.inputLabel")}
+      </label>
+      <input
+        id={id}
+        name="nombre"
+        maxLength={60}
+        placeholder={t("landing.intro.inputPlaceholder")}
+        className={`h-[68px] min-w-0 flex-[1_1_280px] rounded-boton border-2 bg-white px-[22px] text-lg font-medium outline-none placeholder:font-normal placeholder:text-gris focus:border-tinta ${
+          ink ? "border-tinta" : "border-arena"
+        }`}
+      />
+      <DotButton type="submit" variant={ink ? "tinta" : "blanco"} size="lg" ink={ink}>
+        {t("landing.intro.cta")}
+      </DotButton>
+    </form>
+  );
+}
 
 const STEPS = [
   { n: 1, title: t("landing.steps.s1Title"), text: t("landing.steps.s1Text"), alt: t("landing.steps.s1Alt"), src: "/illustrations/web/06-crear.webp", w: 790, h: 635, badge: "bg-pasto" },
@@ -22,57 +65,65 @@ export default function LandingPage() {
       <ScrollFx sheetId={SHEET_ID} />
       <Nav sheetId={SHEET_ID} />
 
-      {/* HERO: verde, fijo; se oscurece mientras la hoja crema sube */}
-      <section className="sticky top-0 z-[1] flex h-dvh min-h-[600px] flex-col items-center justify-start gap-[22px] overflow-clip bg-pasto px-6 pt-[clamp(112px,20dvh,190px)] text-center lg:min-h-[720px] lg:justify-center lg:pt-[110px] lg:pb-[300px]">
+      {/* HERO: verde, fijo; se oscurece mientras la hoja crema sube. En lg, texto | ilustración en rejilla. */}
+      <section className="sticky top-0 z-[1] flex h-dvh min-h-[600px] flex-col items-center overflow-clip bg-pasto px-6 pt-[clamp(104px,16dvh,160px)] text-center lg:min-h-[720px] lg:justify-center lg:bg-puntos lg:pt-[104px] lg:pb-12 lg:text-left">
         <div aria-hidden className="pointer-events-none absolute inset-0 bg-noche" style={{ opacity: "calc(var(--hero, 0) * 0.32)" }} />
-        <Cloud className="top-[22%] left-[4%] animate-drift" />
-        <Cloud width={200} className="top-[16%] right-[6%] animate-drift [animation-delay:-4s]" />
-        <Squiggle className="top-[44%] right-[14%] animate-sway" />
-        <Dot color="#2BA0FF" className="top-[52%] left-[18%] animate-bob" />
+        <Cloud className="top-[22%] left-[4%] animate-drift lg:top-[86%] lg:left-[3%]" />
+        <Cloud width={200} className="top-[16%] right-[6%] animate-drift [animation-delay:-4s] lg:top-[12%]" />
+        <Squiggle className="top-[44%] right-[14%] animate-sway lg:top-[78%] lg:right-[44%]" />
+        <Dot color="#2BA0FF" className="top-[52%] left-[18%] animate-bob lg:top-[90%] lg:left-[34%]" />
         <Dot color="#FF705D" size={16} className="top-[28%] right-[28%] animate-bob-lento" />
-        <h1
-          className="relative text-[clamp(64px,11vw,152px)] leading-[0.92] font-medium tracking-[-0.06em]"
-          style={{ transform: "translateY(calc(var(--hero, 0) * -90px)) scale(calc(1 - var(--hero, 0) * 0.06))" }}
-        >
-          {t("landing.hero.titleLine1")}
-          <br />
-          {t("landing.hero.titleLine2")}
-        </h1>
-        <p className="relative text-[clamp(20px,2vw,27px)] font-medium tracking-[-0.03em]" style={{ transform: "translateY(calc(var(--hero, 0) * -60px))" }}>
-          {t("landing.hero.subtitle")}
-        </p>
+        <div className="relative mx-auto flex w-full max-w-[1248px] flex-col items-center lg:grid lg:grid-cols-[1.05fr_1fr] lg:items-center lg:gap-12">
+          <div className="flex flex-col items-center gap-[22px] lg:items-start lg:gap-6" style={{ transform: "translateY(calc(var(--hero, 0) * -60px))" }}>
+            <Eyebrow className="hidden lg:block">{t("landing.hero.eyebrow")}</Eyebrow>
+            <h1
+              className="text-[clamp(64px,11vw,152px)] leading-[0.92] font-medium tracking-[-0.06em] lg:-mt-2 lg:text-[clamp(76px,7.4vw,124px)] lg:leading-[0.9]"
+              style={{ transform: "translateY(calc(var(--hero, 0) * -30px)) scale(calc(1 - var(--hero, 0) * 0.06))" }}
+            >
+              {t("landing.hero.titleLine1")}
+              <br />
+              {t("landing.hero.titleLine2")}
+            </h1>
+            <p className="text-[clamp(20px,2vw,27px)] font-medium tracking-[-0.03em] text-balance">{t("landing.hero.subtitle")}</p>
+            {/* Móvil: CTA visible sin hacer scroll (I10). */}
+            <DotButton href="/crear" variant="blanco" ink dotClassName="bg-coral" className="mt-1 lg:hidden">
+              {t("landing.hero.cta")}
+            </DotButton>
+            {/* Escritorio: la acción principal (ponerle nombre) sube al hero. */}
+            <NameForm id="gg-nombre-hero" ink className="mt-3 hidden w-full max-w-[600px] lg:flex" />
+            <div className="hidden items-center gap-3 lg:flex">
+              <AvatarStack people={HERO_PEOPLE} size={36} />
+              <span className="text-[15px] font-medium">{t("landing.hero.proof")}</span>
+            </div>
+          </div>
+          <Image
+            src="/illustrations/web/01-hero-v2.webp"
+            width={1012}
+            height={807}
+            alt=""
+            sizes={HERO_SIZES}
+            fetchPriority="high"
+            className="hidden h-auto w-full max-w-[620px] animate-bob-lento justify-self-center lg:block"
+          />
+        </div>
       </section>
 
       {/* HOJA crema */}
       <main id={SHEET_ID} className="relative z-[2] rounded-t-[36px] bg-crema lg:rounded-t-hoja">
-        {/* Regalitos cargando el regalo: en escritorio cruzan del hero a la hoja; en móvil quedan casi completos sobre el hero. */}
+        {/* Móvil: Regalitos cargando el regalo, casi completos sobre el hero. En lg viven dentro del hero. */}
         <div
           aria-hidden
-          className="pointer-events-none absolute right-[max(8px,calc(50%-640px))] z-[3] w-(--hero-art) [--hero-art:min(660px,92vw,calc(80dvh-140px))] [--hero-overlap:28px] lg:[--hero-overlap:56px]"
+          className="pointer-events-none absolute right-[max(8px,calc(50%-640px))] z-[3] w-(--hero-art) [--hero-art:min(560px,88vw,calc(80dvh-200px))] [--hero-overlap:28px] lg:hidden"
           style={{ top: "calc(var(--hero-art) * -0.797 + var(--hero-overlap))" }}
         >
-          <Image src="/illustrations/web/01-hero-v2.webp" width={1012} height={807} alt="" priority className="h-auto w-full animate-bob-lento" />
+          <Image src="/illustrations/web/01-hero-v2.webp" width={1012} height={807} alt="" sizes={HERO_SIZES} fetchPriority="high" className="h-auto w-full animate-bob-lento" />
         </div>
 
         {/* Intro + nombre del intercambio */}
         <section className="relative z-[4] mx-auto max-w-[1296px] px-6 pt-[72px] pb-[120px] lg:pt-[96px]">
           <div className="flex max-w-[620px] flex-col gap-9">
             <p className="text-[clamp(24px,2.4vw,33px)] leading-[1.2] font-medium tracking-[-0.03em]">{t("landing.intro.text")}</p>
-            <form action="/crear" method="get" className="flex flex-wrap gap-3">
-              <label htmlFor="gg-nombre" className="sr-only">
-                {t("landing.intro.inputLabel")}
-              </label>
-              <input
-                id="gg-nombre"
-                name="nombre"
-                maxLength={60}
-                placeholder={t("landing.intro.inputPlaceholder")}
-                className="h-[68px] min-w-0 flex-[1_1_280px] rounded-boton border-2 border-arena bg-white px-[22px] text-lg font-medium outline-none placeholder:font-normal placeholder:text-gris focus:border-tinta"
-              />
-              <DotButton type="submit" variant="blanco" size="lg">
-                {t("landing.intro.cta")}
-              </DotButton>
-            </form>
+            <NameForm id="gg-nombre" className="lg:hidden" />
           </div>
         </section>
 
@@ -153,22 +204,28 @@ export default function LandingPage() {
         </section>
 
         {/* FOOTER */}
-        <footer className="mx-auto flex max-w-[1296px] flex-wrap items-center justify-between gap-6 px-6 pt-14 pb-16">
-          <span className="text-[28px] font-medium tracking-[-0.04em]">{t("brand.name")}</span>
-          <nav aria-label={t("nav.footer")} className="flex flex-wrap gap-7 text-base">
-            {(["guides", "faq", "privacy", "terms", "contact"] as const).map((k) => (
-              <Link key={k} href="#" className="border-b border-gris">
-                {t(`landing.footer.${k}`)}
-              </Link>
-            ))}
+        <footer className="mx-auto flex max-w-[1296px] flex-wrap items-center justify-between gap-x-6 gap-y-3 px-6 pt-14 pb-16">
+          <Link href="/" className="flex min-h-11 items-center gap-2.5 no-underline">
+            <LogoMark />
+            <span className="text-[28px] font-medium tracking-[-0.04em]">{t("brand.name")}</span>
+          </Link>
+          <nav aria-label={t("nav.footer")} className="-mx-3 flex flex-wrap text-base">
+            {FOOTER_LINKS.map((l) =>
+              l.href.startsWith("mailto:") ? (
+                <a key={l.href} href={l.href} className={FOOTER_LINK}>
+                  {l.label}
+                </a>
+              ) : (
+                <Link key={l.href} href={l.href} className={FOOTER_LINK}>
+                  {l.label}
+                </Link>
+              ),
+            )}
           </nav>
           <span className="w-full text-sm text-gris">{t("brand.madeIn")}</span>
         </footer>
       </main>
 
-      <Link href="/crear" aria-label={t("nav.create")} className="fixed right-4 bottom-4 z-40 grid size-14 place-items-center rounded-full bg-coral shadow-none sm:hidden">
-        <ArrowIcon size={20} />
-      </Link>
     </div>
   );
 }

@@ -1,18 +1,25 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 import { AddAssistedForm } from "@/components/organizer/AddAssistedForm";
 import { GroupRow, type GroupRowData } from "@/components/organizer/GroupRow";
+import { OwnerSteps } from "@/components/organizer/OwnerSteps";
+import { PanelOptions } from "@/components/organizer/PanelOptions";
+import { Alert } from "@/components/ui/Alert";
+import { AppShell } from "@/components/ui/AppShell";
+import { BrandBar } from "@/components/ui/BrandBar";
 import { CopyButton } from "@/components/ui/CopyButton";
-import { DotButton } from "@/components/ui/DotButton";
-import { ArrowIcon, BackIcon, MegaphoneIcon, PlusIcon, SettingsIcon } from "@/components/ui/icons";
-import { Pill, RoundIconLink } from "@/components/ui/primitives";
-import { getAssignments, getParticipants } from "@/lib/data/exchanges";
+import { BackIcon, MegaphoneIcon, SettingsIcon } from "@/components/ui/icons";
+import { Avatar, Card, Eyebrow, ScreenTitle } from "@/components/ui/primitives";
+import { StatTile } from "@/components/ui/StatTile";
+import { PageTransition } from "@/components/ui/Transitions";
+import { getAssignments, getExclusions, getPanelParticipants } from "@/lib/data/exchanges";
+import { getUnread } from "@/lib/data/gifts";
 import { requireOwnedExchange } from "@/lib/data/owner";
-import type { Exchange, Participant } from "@/lib/data/types";
+import type { Exchange, PanelParticipant } from "@/lib/data/types";
 import { appUrl, formatEvent, formatMoney, formatShortDate, whatsappHref } from "@/lib/format";
 import { t } from "@/lib/i18n";
+import { LIST_GOAL } from "@/lib/ownerSteps";
 
 export const metadata: Metadata = { title: "Tu intercambio", robots: { index: false } };
 
@@ -22,42 +29,41 @@ function daysLeft(iso: string): string {
   return days === 1 ? t("panel.dayLeft") : t("panel.daysLeft", { n: days });
 }
 
-function Bar({ label, value, total, color }: { label: string; value: number; total: number; color: string }) {
-  const pct = total ? Math.round((value / total) * 100) : 0;
-  return (
-    <div className="flex flex-col gap-2">
-      <div className="flex justify-between text-[15px]">
-        <span className="font-medium">{label}</span>
-        <span>
-          {value} de {total}
-        </span>
-      </div>
-      <div className="h-2.5 rounded-full bg-arena" role="progressbar" aria-label={label} aria-valuenow={value} aria-valuemin={0} aria-valuemax={total}>
-        <div className={`h-2.5 rounded-full ${color}`} style={{ width: `${pct}%` }} />
-      </div>
-    </div>
-  );
-}
-
-function names(list: Participant[]): string {
+function names(list: PanelParticipant[]): string {
   const shown = list.slice(0, 3).map((p) => p.name.split(" ")[0]);
   const rest = list.length - shown.length;
-  return rest > 0 ? `${shown.join(", ")} y ${rest} más` : shown.join(" y ").replace(/ y (?=.* y )/, ", ");
+  if (rest > 0) return t("panel.namesMore", { names: shown.join(", "), n: rest });
+  if (shown.length < 2) return shown.join("");
+  return t("panel.namesAnd", { a: shown.slice(0, -1).join(", "), b: shown[shown.length - 1] });
 }
+
+/** «1 de 3 ideas» antes del sorteo (el objetivo importa); después, solo cuántas tiene. */
+function ideasLabel(n: number, goal: boolean): string {
+  if (n === 0) return t("panel.ideasNone");
+  if (goal && n < LIST_GOAL) return t("panel.ideasGoal", { n });
+  return n === 1 ? t("panel.ideasOne") : t("panel.ideasCount", { n });
+}
+
+const ghostButton = "flex h-[52px] items-center justify-center gap-2 rounded-boton bg-white px-4 text-[15px] font-medium transition-transform active:scale-[0.98] lg:h-11";
 
 async function Panel({ params }: { params: Promise<{ exchangeId: string }> }) {
   const { exchangeId } = await params;
-  const { exchange } = await requireOwnedExchange(exchangeId, `/organizar/${exchangeId}`);
-  const participants = await getParticipants(exchange.id);
+  const { exchange, organizer } = await requireOwnedExchange(exchangeId, `/organizar/${exchangeId}`);
   const drawn = exchange.status === "drawn";
+  const [participants, exclusions] = await Promise.all([getPanelParticipants(exchange), drawn ? Promise.resolve([]) : getExclusions(exchange.id)]);
   // Las asignaciones solo se leen si el organizador eligió verlas: si no, ni siquiera llegan al HTML.
   const assignments = drawn && exchange.rules.ownerSeesMap ? await getAssignments(exchange.id) : null;
   const byId = new Map(participants.map((p) => [p.id, p]));
   const owner = participants.find((p) => p.kind === "owner");
+  const tz = exchange.timeZone;
   const inviteLink = appUrl(`/i/${exchange.inviteCode}`);
-  const personalLink = (p: Participant) => appUrl(`/i/${exchange.inviteCode}/p/${p.token}`);
   const total = participants.length;
   const withList = participants.filter((p) => p.wishCount > 0).length;
+  const revealed = participants.filter((p) => p.revealed).length;
+  const bought = participants.filter((p) => p.bought).length;
+  // No leídos del buzón de quien organiza (el mismo helper que usa su inicio personal).
+  const ownerUnread = owner && drawn && exchange.rules.mailboxEnabled ? await getUnread(exchange.id, owner.id, owner.revealed) : null;
+  const unread = ownerUnread ? ownerUnread.giver + ownerUnread.receiver : 0;
 
   const rows: GroupRowData[] = participants.map((p) => ({
     id: p.id,
@@ -65,178 +71,206 @@ async function Panel({ params }: { params: Promise<{ exchangeId: string }> }) {
     color: p.color,
     isOwner: p.kind === "owner",
     assisted: p.kind === "assisted",
-    link: personalLink(p),
-    pills: drawn
-      ? [
-          ...(p.revealed ? [{ label: t("panel.revealed"), tone: "cielo" as const }] : [{ label: "Sobre sin abrir", tone: "coral-outline" as const }]),
-          ...(p.bought ? [{ label: "Ya compró", tone: "pasto" as const }] : []),
-        ]
-      : [p.wishCount > 0 ? { label: t("panel.hasList"), tone: "pasto" as const } : { label: t("panel.noList"), tone: "arena" as const }],
+    link: p.link, // null para quienes se apuntaron solos: quien organiza no tiene su link (R1)
+    ideas: ideasLabel(p.wishCount, !drawn),
+    pill: drawn
+      ? p.bought
+        ? { label: t("panel.boughtPill"), tone: "pasto-50" as const }
+        : p.revealed
+          ? { label: t("panel.revealedPill"), tone: "cielo-50" as const }
+          : { label: t("panel.notRevealed"), tone: "sol-50" as const }
+      : p.wishCount >= LIST_GOAL
+        ? { label: t("panel.pillListReady"), tone: "pasto-50" as const }
+        : p.wishCount > 0
+          ? { label: t("panel.pillNeedsIdeas"), tone: "sol-50" as const }
+          : { label: t("panel.noList"), tone: "arena" as const },
     givesTo: assignments ? byId.get(assignments.get(p.id)?.receiverId ?? "")?.name : undefined,
+    // A quien se apuntó solo se le recuerda con el link de invitación (no tenemos el suyo); a los asistidos los maneja quien organiza.
     remindHref:
-      drawn && !p.revealed && p.kind !== "owner" && p.kind !== "assisted"
-        ? whatsappHref(t("panel.remindText", { name: p.name.split(" ")[0], exchange: exchange.name, link: personalLink(p) }))
+      drawn && !p.revealed && p.kind === "self"
+        ? whatsappHref(t("panel.remindText", { name: p.name.split(" ")[0], exchange: exchange.name, link: inviteLink }))
         : undefined,
   }));
 
   const announce = drawn
-    ? t("panel.drawnAnnounceText", { exchange: exchange.name, date: formatShortDate(exchange.eventAt) })
-    : t("panel.announceText", { name: exchange.name, date: formatEvent(exchange.eventAt), n: total, link: inviteLink });
+    ? t("panel.drawnAnnounceText", { exchange: exchange.name, date: formatShortDate(exchange.eventAt, tz) })
+    : t("panel.announceText", { name: exchange.name, date: formatEvent(exchange.eventAt, tz), n: total, link: inviteLink });
+  const announceHref = whatsappHref(announce);
+  const stats = drawn
+    ? t("panel.statsDrawn", { n: total, revealed, bought })
+    : t("panel.statsOpen", { n: total, lists: withList, exclusions: exclusions.length });
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex items-center justify-between pt-4">
-        <RoundIconLink href="/mis-intercambios" label={t("panel.back")}>
-          <BackIcon />
-        </RoundIconLink>
-        <Pill className="bg-tinta text-white">{t("panel.badge")}</Pill>
-        <RoundIconLink href={`/organizar/${exchange.id}/editar`} label={t("panel.settings")}>
-          <SettingsIcon size={18} />
-        </RoundIconLink>
-      </div>
-
-      <div>
-        <h1 className="text-[32px] leading-[1.02] font-medium tracking-[-0.05em] lg:text-[60px]">{exchange.name}</h1>
-        <p className="mt-1.5 text-[15px] text-gris lg:text-lg">
-          {drawn
-            ? `${t("panel.drawnOn", { date: formatShortDate(exchange.drawnAt ?? exchange.eventAt) })} · ${daysLeft(exchange.eventAt)}`
-            : `${formatEvent(exchange.eventAt)}${exchange.place ? ` · ${exchange.place}` : ""} · Hasta ${formatMoney(exchange.budget.amount)}`}
-        </p>
-      </div>
-
-      <div className="flex flex-wrap gap-5">
-        <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-4">
-          {drawn ? (
+    <AppShell
+      variant="tablero"
+      pattern="puntos"
+      className="md:max-w-[1180px]!"
+      header={
+        <BrandBar
+          className="pt-2"
+          action={
             <>
-              {owner && (
-                <Link href={`/i/${exchange.inviteCode}/p/${owner.token}/sobre`} className="flex items-center gap-3 rounded-[24px] bg-pasto p-4">
-                  <Image src="/illustrations/web/09-revelacion.webp" width={692} height={669} alt="" className="h-[86px] w-[90px] object-contain" />
-                  <span className="flex flex-1 flex-col gap-1">
-                    <span className="text-[22px] leading-tight font-medium tracking-[-0.03em]">{t("panel.envelopeTitle")}</span>
-                    <span className="text-sm">{t("panel.envelopeText")}</span>
-                  </span>
-                  <span className="grid size-10 place-items-center rounded-full bg-white">
-                    <ArrowIcon size={14} />
-                  </span>
-                </Link>
-              )}
-              <div className="flex flex-col gap-4 rounded-[24px] bg-white p-[18px]">
-                <Bar label={t("panel.revealed")} value={participants.filter((p) => p.revealed).length} total={total} color="bg-tinta" />
-                <Bar label={t("panel.lists")} value={withList} total={total} color="bg-sol" />
-                <Bar label={t("panel.bought")} value={participants.filter((p) => p.bought).length} total={total} color="bg-pasto" />
-                <p className="text-sm text-gris">
-                  {participants.every((p) => p.revealed)
-                    ? t("panel.allRevealed")
-                    : t("panel.pendingReveal", { names: names(participants.filter((p) => !p.revealed)) })}
-                </p>
-              </div>
-            </>
-          ) : (
-            <div className="flex items-center gap-3 rounded-[24px] bg-pasto p-[18px] lg:p-7">
-              <div className="flex flex-1 flex-col gap-2.5">
-                <span className="text-[22px] leading-[1.1] font-medium tracking-[-0.03em] lg:text-[38px] lg:leading-none">
-                  {total >= 3 ? (
-                    <>
-                      {t("panel.ready", { n: total })}
-                      <br />
-                      {t("panel.readySub")}
-                    </>
-                  ) : 3 - total === 1 ? (
-                    t("panel.needMoreOne")
-                  ) : (
-                    t("panel.needMore", { n: 3 - total })
-                  )}
-                </span>
-                {total >= 3 && (
-                  <DotButton href={`/organizar/${exchange.id}/sorteo`} variant="blanco" className="h-[50px] self-start text-base">
-                    {t("panel.drawCta")}
-                  </DotButton>
-                )}
-              </div>
-              <Image src="/illustrations/web/08-esperando.webp" width={845} height={385} alt="" className="h-[90px] w-[130px] object-contain lg:h-[150px] lg:w-[300px]" />
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-2.5">
-            {!drawn && (
-              <Link href={`/crear/listo/${exchange.id}`} className="flex h-[52px] items-center justify-center gap-2 rounded-boton bg-white text-[15px] font-medium">
-                <PlusIcon size={18} />
-                {t("panel.invite")}
+              <Link
+                href="/mis-intercambios"
+                transitionTypes={["nav-back"]}
+                className="hidden min-h-11 items-center gap-1.5 rounded-[10px] px-2 text-[15px] font-medium no-underline underline-offset-4 hover:underline lg:inline-flex"
+              >
+                <BackIcon size={18} />
+                {t("panel.back")}
               </Link>
+              <span className="hidden lg:block" title={organizer.email}>
+                <Avatar name={owner?.name || organizer.name || organizer.email} color={owner?.color ?? "pasto"} size={40} />
+                <span className="sr-only">{t("panel.account")}</span>
+              </span>
+              <Link
+                href={`/organizar/${exchange.id}/editar`}
+                aria-label={t("panel.settings")}
+                transitionTypes={["nav-forward"]}
+                className="grid size-11 place-items-center rounded-boton border-2 border-tinta bg-hueso transition-transform active:scale-90 lg:hidden"
+              >
+                <SettingsIcon size={18} />
+              </Link>
+            </>
+          }
+        />
+      }
+    >
+      <PageTransition>
+        <div className="flex flex-col gap-5 lg:gap-7">
+          <Link
+            href="/mis-intercambios"
+            transitionTypes={["nav-back"]}
+            className="-mt-1 inline-flex min-h-11 items-center gap-1.5 self-start text-[15px] font-medium no-underline lg:hidden"
+          >
+            <BackIcon size={18} />
+            {t("panel.back")}
+          </Link>
+
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between lg:pt-4">
+            <div className="min-w-0">
+              <Eyebrow>
+                {drawn
+                  ? `${t("panel.badge")} · ${t("panel.drawnOn", { date: formatShortDate(exchange.drawnAt ?? exchange.eventAt, tz) })} · ${daysLeft(exchange.eventAt)}`
+                  : t("panel.eyebrow", { days: daysLeft(exchange.eventAt) })}
+              </Eyebrow>
+              <ScreenTitle size="sm" className="mt-2 break-words">
+                {exchange.name}
+              </ScreenTitle>
+              <p className="mt-2 text-[15px] text-gris lg:text-lg">
+                {[formatEvent(exchange.eventAt, tz), exchange.place, t("panel.budget", { budget: formatMoney(exchange.budget.amount) })].filter(Boolean).join(" · ")}
+              </p>
+            </div>
+            <div className="hidden shrink-0 gap-2 lg:flex">
+              <Link href={`/organizar/${exchange.id}/editar`} transitionTypes={["nav-forward"]} className={ghostButton}>
+                <SettingsIcon size={18} />
+                {t("panel.editRules")}
+              </Link>
+              <a href={announceHref} target="_blank" rel="noopener noreferrer" className={ghostButton}>
+                <MegaphoneIcon size={18} />
+                {t("panel.announce")}
+              </a>
+            </div>
+          </div>
+
+          {!drawn && !exchange.registrationOpen && <Alert tone="info">{t("panel.registrationClosed")}</Alert>}
+
+          <OwnerSteps exchange={exchange} owner={owner?.path ? owner : null} total={total} unread={unread} announceHref={announceHref} />
+
+          <section aria-labelledby="grupo" className="flex flex-col gap-2.5 lg:gap-3">
+            <div className="flex items-baseline justify-between gap-3">
+              <h2 id="grupo" className="etiqueta text-gris">
+                {t("panel.group")}
+              </h2>
+              <span className="hidden text-sm text-gris md:inline">{stats}</span>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 md:hidden">
+              {drawn ? (
+                <>
+                  <StatTile label={t("panel.revealed")} value={revealed} of={total} />
+                  <StatTile label={t("panel.kpiLists")} value={withList} of={total} />
+                  <StatTile label={t("panel.bought")} value={bought} of={total} />
+                </>
+              ) : (
+                <>
+                  <StatTile label={t("panel.kpiJoined")} value={total} />
+                  <StatTile label={t("panel.kpiLists")} value={withList} />
+                  <StatTile label={t("panel.kpiExclusions")} value={exclusions.length} />
+                </>
+              )}
+            </div>
+
+            {drawn && (
+              <p className="text-sm text-gris">{revealed === total ? t("panel.allRevealed") : t("panel.pendingReveal", { names: names(participants.filter((p) => !p.revealed)) })}</p>
             )}
-            <a
-              href={whatsappHref(announce)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`flex h-[52px] items-center justify-center gap-2 rounded-boton bg-white text-[15px] font-medium ${drawn ? "col-span-2" : ""}`}
-            >
+
+            <ul className="escalonado flex flex-col divide-y divide-arena rounded-tarjeta bg-white px-4 py-1 md:grid md:grid-cols-2 md:gap-3.5 md:divide-y-0 md:bg-transparent md:p-0 xl:grid-cols-4">
+              {rows.map((row) => (
+                <GroupRow key={row.id} row={row} exchangeId={exchange.id} exchangeName={exchange.name} drawn={drawn} />
+              ))}
+            </ul>
+
+            <a href={announceHref} target="_blank" rel="noopener noreferrer" className={`${ghostButton} lg:hidden`}>
               <MegaphoneIcon size={18} />
               {t("panel.announce")}
             </a>
-          </div>
 
-          <section className="rounded-[20px] bg-white px-4 pt-3 pb-1">
-            <div className="flex items-baseline justify-between">
-              <h2 className="text-xl font-medium tracking-[-0.02em]">{t("panel.group")}</h2>
-              <span className="text-sm text-gris">{t("panel.withList", { n: withList, total })}</span>
-            </div>
-            <ul>
-              {rows.map((row) => (
-                <GroupRow key={row.id} row={row} exchangeId={exchange.id} canRemove={!drawn} />
-              ))}
-            </ul>
+            {drawn && !exchange.rules.ownerSeesMap && (
+              <p className="rounded-boton border-2 border-dashed border-punteado px-4 py-3.5 text-sm leading-snug text-gris">{t("panel.mapHidden")}</p>
+            )}
           </section>
 
-          {!drawn && (
-            <section className="rounded-[20px] bg-white p-4">
-              <AddAssistedForm exchangeId={exchange.id} />
-            </section>
-          )}
-          {drawn && !exchange.rules.ownerSeesMap && (
-            <p className="rounded-boton border border-dashed border-gris px-4 py-3.5 text-sm leading-snug text-gris">{t("panel.mapHidden")}</p>
-          )}
-        </div>
-
-        <aside className="flex min-w-0 flex-[1_1_300px] flex-col gap-4">
-          {!drawn && (
-            <div className="flex flex-col gap-3 rounded-panel bg-white p-5">
-              <h2 className="text-lg font-medium">{t("panel.inviteLinkTitle")}</h2>
-              <div className="flex items-center gap-2 rounded-[12px] bg-crema py-1.5 pr-1.5 pl-3">
-                <span className="min-w-0 flex-1 truncate text-sm font-medium">{inviteLink.replace(/^https?:\/\//, "")}</span>
-                <CopyButton text={inviteLink} />
-              </div>
+          <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+            <div className="flex min-w-0 flex-col gap-4">
+              {!drawn && (
+                <Card className="flex flex-col gap-3">
+                  <h2 className="text-lg font-medium">{t("panel.inviteLinkTitle")}</h2>
+                  <div className="flex flex-wrap items-center gap-2 rounded-[12px] bg-crema py-1.5 pr-1.5 pl-3">
+                    <span className="min-w-0 flex-1 truncate text-sm font-medium">{inviteLink.replace(/^https?:\/\//, "")}</span>
+                    <CopyButton text={inviteLink} />
+                  </div>
+                </Card>
+              )}
+              {!drawn && (
+                <Card>
+                  <AddAssistedForm exchangeId={exchange.id} />
+                </Card>
+              )}
+              <RulesCard exchange={exchange} />
             </div>
-          )}
-          <RulesCard exchange={exchange} />
-        </aside>
-      </div>
-    </div>
+            <PanelOptions exchangeId={exchange.id} exchangeName={exchange.name} drawn={drawn} registrationOpen={exchange.registrationOpen} />
+          </div>
+        </div>
+      </PageTransition>
+    </AppShell>
   );
 }
 
 function RulesCard({ exchange }: { exchange: Exchange }) {
   const r = exchange.rules;
   return (
-    <div className="flex flex-col gap-2.5 rounded-panel bg-white p-5">
+    <Card className="flex flex-col gap-2.5">
       <h2 className="text-lg font-medium">{t("panel.rulesTitle")}</h2>
       <p className="text-sm leading-relaxed text-gris">
         {[t("panel.rulesManual"), r.mailboxEnabled ? t("panel.rulesMailboxOn") : t("panel.rulesMailboxOff"), r.ownerSeesMap ? t("panel.rulesSeesMapOn") : t("panel.rulesSeesMapOff")].join(" · ")}
       </p>
-      <Link href={`/organizar/${exchange.id}/editar`} className="text-[15px] font-medium underline underline-offset-4">
+      <Link href={`/organizar/${exchange.id}/editar`} transitionTypes={["nav-forward"]} className="inline-flex min-h-11 items-center self-start text-[15px] font-medium underline underline-offset-4">
         {t("panel.editRules")}
       </Link>
-    </div>
+    </Card>
   );
 }
 
 export default function OrganizarPage({ params }: PageProps<"/organizar/[exchangeId]">) {
   return (
-    <div className="min-h-dvh bg-crema">
-      <main className="mx-auto w-full max-w-[440px] px-5 pb-10 lg:max-w-[1232px] lg:px-6">
-        <Suspense fallback={<p className="pt-10 text-gris">{t("common.loading")}</p>}>
-          <Panel params={params} />
-        </Suspense>
-      </main>
-    </div>
+    <Suspense
+      fallback={
+        <AppShell variant="tablero">
+          <p className="pt-10 text-gris">{t("common.loading")}</p>
+        </AppShell>
+      }
+    >
+      <Panel params={params} />
+    </Suspense>
   );
 }
