@@ -27,9 +27,9 @@ export type OwnerProgress = {
 };
 
 /**
- * Pasos en orden. Antes del sorteo el «actual» es el primero pendiente (lista → invitar → sortear);
- * después, primero avisar al grupo (los participantes esperan ese aviso) y luego el sobre/regalo.
- * Solo uno queda como `current`.
+ * Pasos en orden. Antes del sorteo el «actual» es invitar (hasta 3 personas) y luego sortear; la lista de
+ * quien organiza es opcional y nunca bloquea. Después, primero avisar al grupo (los participantes esperan
+ * ese aviso) y luego el sobre/regalo. Solo uno queda como `current`.
  */
 export function ownerSteps(p: OwnerProgress): OwnerStep[] {
   // Después del sorteo, con al menos una idea ya cuenta: quien le regala ya tiene de dónde escoger.
@@ -44,10 +44,11 @@ export function ownerSteps(p: OwnerProgress): OwnerStep[] {
     ...(p.participates ? [{ key: "gift" as const, done: p.bought, locked: !p.drawn }] : []),
   ];
 
-  // Después del sorteo, una lista corta ya no bloquea: lo urgente es avisar al grupo y luego el sobre.
+  // La lista es opcional: nunca es el paso «Ahora» ni bloquea el sorteo (sigue disponible como «todo»).
+  // Antes del sorteo: invitar hasta tener 3 y luego sortear. Después: avisar al grupo y luego el sobre/regalo.
   const current = p.drawn
-    ? (steps.find((s) => (s.key === "announce" || s.key === "gift") && !s.done) ?? steps.find((s) => !s.done))
-    : steps.find((s) => !s.done && !s.locked);
+    ? steps.find((s) => (s.key === "announce" || s.key === "gift") && !s.done)
+    : steps.find((s) => s.key !== "list" && !s.done && !s.locked);
 
   return steps.map((s) => ({ key: s.key, state: s.done ? "done" : s === current ? "current" : s.locked ? "locked" : "todo" }));
 }

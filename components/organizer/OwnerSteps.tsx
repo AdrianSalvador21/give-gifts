@@ -16,7 +16,8 @@ const FWD = ["nav-forward"];
 
 /** `announce`: el CTA es «Avisar al grupo» (abre WhatsApp y guarda el aviso con markAnnounced). */
 type Now = { title: string; text: string; cta: string; href: string; announce?: boolean; tone: Tone; ribbon: string };
-type Detail = { title: string; sub: string; aside?: ReactNode; now?: Now };
+/** `href`: a dónde lleva el mosaico del paso en escritorio (si se puede actuar en él). */
+type Detail = { title: string; sub: string; aside?: ReactNode; now?: Now; href?: string };
 
 const asideLink = "inline-flex min-h-11 items-center text-sm font-medium text-tinta underline-offset-4 hover:underline";
 
@@ -47,6 +48,7 @@ function detail(key: OwnerStepKey, step: OwnerStep, { exchange, owner, total, an
       return {
         title: t("panel.steps.list.title"),
         sub: n >= LIST_GOAL ? t("panel.ideasCount", { n }) : ideas(n),
+        href,
         aside: (
           <Link href={href} transitionTypes={FWD} className={asideLink}>
             {n >= LIST_GOAL ? t("panel.ideasCount", { n }) : ideas(n)}
@@ -87,6 +89,7 @@ function detail(key: OwnerStepKey, step: OwnerStep, { exchange, owner, total, an
       const drawn = exchange.status === "drawn";
       return {
         title: t("panel.steps.draw.title"),
+        href: drawn || locked ? undefined : href,
         sub: drawn ? t("panel.steps.draw.sub", { date: formatShortDate(exchange.drawnAt ?? exchange.eventAt, exchange.timeZone) }) : locked ? t("panel.steps.fromThree") : t("panel.steps.draw.ready"),
         aside: drawn ? t("panel.steps.done") : locked ? <Locked>{t("panel.steps.fromThree")}</Locked> : (
           <Link href={href} transitionTypes={FWD} className={asideLink}>
@@ -139,6 +142,17 @@ function detail(key: OwnerStepKey, step: OwnerStep, { exchange, owner, total, an
       };
     }
   }
+}
+
+/** Contenido de un mosaico de paso: link si se puede actuar en él (escritorio). */
+function TileBody({ href, children }: { href?: string; children: ReactNode }) {
+  const cls = "flex w-full flex-col gap-1.5 rounded-2xl p-3.5";
+  if (!href) return <div className={cls}>{children}</div>;
+  return (
+    <Link href={href} transitionTypes={FWD} className={`${cls} levantable text-tinta no-underline`}>
+      {children}
+    </Link>
+  );
 }
 
 function Locked({ children }: { children: ReactNode }) {
@@ -282,16 +296,18 @@ export function OwnerSteps(props: Props) {
         {/* Escritorio: mosaicos. */}
         <ol className="hidden gap-2.5 lg:grid" style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}>
           {steps.map((s, i) => (
-            <li key={s.key} aria-current={s.state === "current" ? "step" : undefined} className={`flex min-h-24 flex-col gap-1.5 rounded-2xl p-3.5 ${TILE[s.state]}`}>
-              <StepDot n={i + 1} state={s.state} size="sm" />
-              <span className="text-sm leading-tight font-medium">
-                {details[i].title}
-                {s.state === "done" && <span className="sr-only"> ({t("ui.stepDone")})</span>}
-              </span>
-              <span className="flex items-center gap-1 text-xs text-gris">
-                {s.state === "locked" && <LockIcon size={12} />}
-                {details[i].sub}
-              </span>
+            <li key={s.key} aria-current={s.state === "current" ? "step" : undefined} className={`flex min-h-24 rounded-2xl ${TILE[s.state]}`}>
+              <TileBody href={s.state === "done" || s.state === "locked" ? undefined : details[i].href}>
+                <StepDot n={i + 1} state={s.state} size="sm" />
+                <span className="text-sm leading-tight font-medium">
+                  {details[i].title}
+                  {s.state === "done" && <span className="sr-only"> ({t("ui.stepDone")})</span>}
+                </span>
+                <span className="flex items-center gap-1 text-xs text-gris">
+                  {s.state === "locked" && <LockIcon size={12} />}
+                  {details[i].sub}
+                </span>
+              </TileBody>
             </li>
           ))}
         </ol>

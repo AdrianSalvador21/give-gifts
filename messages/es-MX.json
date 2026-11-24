@@ -605,7 +605,7 @@
         "title": "Crea el intercambio"
       },
       "list": {
-        "title": "Llena tu lista",
+        "title": "Tu lista (opcional)",
         "nowTitle": "Llena tu lista de deseos",
         "nowText": "Quien te regale la verá cuando sortees. Llevas {n} de 3 ideas.",
         "cta": "Llenar mi lista",
