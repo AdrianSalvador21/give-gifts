@@ -652,6 +652,7 @@
         "nowTitle": "Avísale al grupo",
         "nowText": "Te están esperando: mándales el aviso por WhatsApp para que cada quien abra su sobre.",
         "cta": "Avisar al grupo",
+        "again": "Volver a avisar",
         "next": "Avísale al grupo que ya se sorteó"
       },
       "allDone": {
