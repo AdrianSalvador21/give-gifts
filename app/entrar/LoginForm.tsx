@@ -10,7 +10,7 @@ import {
   signOut as clientSignOut,
   type UserCredential,
 } from "firebase/auth";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
 import { createSession } from "@/app/actions/session";
 import { DotButton } from "@/components/ui/DotButton";
@@ -41,7 +41,6 @@ function safeNext(next: string | null): string {
 }
 
 export function LoginForm() {
-  const router = useRouter();
   const next = safeNext(useSearchParams().get("next"));
   const [mode, setMode] = useState<"signIn" | "signUp">("signIn");
   const [name, setName] = useState("");
@@ -57,8 +56,9 @@ export function LoginForm() {
     // La app no usa la sesión del cliente: la cookie del servidor es la fuente de verdad.
     await clientSignOut(clientAuth());
     if (!res.ok) throw new Error("session");
-    router.replace(next);
-    router.refresh();
+    // Navegación completa: la siguiente página lee la cookie nueva desde el servidor.
+    window.location.assign(next);
+    await new Promise(() => {}); // el botón sigue en espera hasta que cambie la página
   }
 
   function run(task: () => Promise<void>) {
@@ -83,7 +83,17 @@ export function LoginForm() {
     }
     run(async () => {
       if (mode === "signUp") {
-        await finish(await createUserWithEmailAndPassword(clientAuth(), email.trim(), password), name.trim());
+        let cred: UserCredential;
+        try {
+          cred = await createUserWithEmailAndPassword(clientAuth(), email.trim(), password);
+        } catch (err) {
+          // Si la cuenta ya existe (p. ej. un segundo clic), se intenta entrar con los mismos datos.
+          if (!(err instanceof FirebaseError && err.code === "auth/email-already-in-use")) throw err;
+          cred = await signInWithEmailAndPassword(clientAuth(), email.trim(), password).catch(() => {
+            throw err;
+          });
+        }
+        await finish(cred, name.trim());
       } else {
         await finish(await signInWithEmailAndPassword(clientAuth(), email.trim(), password));
       }
@@ -133,13 +143,21 @@ export function LoginForm() {
             {notice}
           </p>
         )}
-        <DotButton type="submit" variant="pasto" full disabled={pending}>
-          {mode === "signUp" ? t("auth.signUp") : t("auth.signIn")}
+        <DotButton type="submit" variant="pasto" full disabled={pending} aria-live="polite">
+          {mode === "signUp" ? (pending ? t("auth.creating") : t("auth.signUp")) : pending ? t("auth.signingIn") : t("auth.signIn")}
         </DotButton>
       </form>
 
       <div className="flex flex-col items-center gap-2 text-[15px] font-medium">
-        <button type="button" className="underline underline-offset-4" onClick={() => setMode(mode === "signIn" ? "signUp" : "signIn")}>
+        <button
+          type="button"
+          className="underline underline-offset-4"
+          onClick={() => {
+            setMode(mode === "signIn" ? "signUp" : "signIn");
+            setError(null);
+            setNotice(null);
+          }}
+        >
           {mode === "signIn" ? t("auth.toSignUp") : t("auth.toSignIn")}
         </button>
         {mode === "signIn" && (

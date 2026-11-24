@@ -60,7 +60,8 @@ export type WishDoc = {
   createdAt: Timestamp;
 };
 
-export type ThreadDoc = { giverId: string; receiverId: string; updatedAt: Timestamp };
+// giverReadAt / receiverReadAt: última vez que cada lado abrió el hilo (para «mensajes nuevos»).
+export type ThreadDoc = { giverId: string; receiverId: string; updatedAt: Timestamp; giverReadAt?: Timestamp; receiverReadAt?: Timestamp };
 export type MessageDoc = { from: "giver" | "receiver"; text: string; createdAt: Timestamp };
 
 /* ---------- Formas serializables que viajan a componentes ---------- */

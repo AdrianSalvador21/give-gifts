@@ -13,6 +13,7 @@ function decodeEntities(s: string): string {
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&#(\d+);/g, (_, n: string) => String.fromCodePoint(Number(n)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, n: string) => String.fromCodePoint(parseInt(n, 16)))
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -76,35 +77,119 @@ export function storeFrom(url: URL): string {
   return url.hostname.replace(/^www\./, "");
 }
 
+const AMAZON = /(^|\.)amazon\.(com\.mx|com|es|ca|co\.uk|de|fr|it|com\.br)$/i;
+
+/** Amazon: el link largo con rastreo → https://www.amazon.com.mx/dp/ASIN (más corto y estable). */
+function canonicalUrl(url: URL): URL {
+  const clean = new URL(url);
+  clean.hash = ""; // los fragmentos (#polycard…, #tracking) solo sirven para rastreo
+  if (MERCADO_LIBRE.test(clean.hostname)) clean.search = "";
+  if (!AMAZON.test(clean.hostname)) return clean;
+  const asin = clean.pathname.match(/\/(?:dp|gp\/product|gp\/aw\/d)\/([A-Z0-9]{10})(?:[/?]|$)/i)?.[1];
+  return asin ? new URL(`https://${clean.hostname}/dp/${asin.toUpperCase()}`) : clean;
+}
+
+const MERCADO_LIBRE = /(^|\.)mercadoli[bv]re\.com(\.[a-z]{2})?$/i;
+
+/** La tienda nos mandó a un muro (verificación, captcha, login) en lugar del producto. */
+function isBlockedPage(finalUrl: string, html: string): boolean {
+  let path = "";
+  try {
+    path = new URL(finalUrl).pathname;
+  } catch {
+    // sin URL final: se revisa solo el HTML
+  }
+  if (/account-verification|captcha|challenge|\/(login|signin|sign-in)\b/i.test(path)) return true;
+  return /api-services-support@amazon|captcha/i.test(html.slice(0, 20_000)) && !/productTitle|og:title/.test(html);
+}
+
 /**
- * Lee título, imagen y precio de una página de producto (Open Graph). Nunca lanza:
- * si la tienda bloquea o tarda más de 5 s, devuelve el dominio como título.
+ * Nombre legible sacado de la ruta cuando la tienda no deja leer la página:
+ * "/Bose-SoundLink-inal%C3%A1mbrico-Exteriores/dp/B0F…" → "Bose SoundLink inalámbrico Exteriores".
+ */
+function titleFromPath(url: URL): string | null {
+  const segments = url.pathname.split("/").filter(Boolean);
+  const candidates = segments
+    .map((s) => {
+      try {
+        return decodeURIComponent(s);
+      } catch {
+        return s;
+      }
+    })
+    .filter((s) => /[-_]/.test(s) && /\p{L}{3,}/u.test(s) && !/^(dp|gp|product|products|p|item|items)$/i.test(s))
+    .map((s) => s.replace(/\.(html?|aspx?|php)$/i, "").replace(/[-_]+/g, " ").replace(/\s+/g, " ").trim());
+  const best = candidates.sort((a, b) => b.length - a.length)[0];
+  return best && best.length >= 6 ? (best.charAt(0).toUpperCase() + best.slice(1)).slice(0, 120) : null;
+}
+
+/** Lee el cuerpo poco a poco y se queda con lo que llegó si se acaba el tiempo o el límite. */
+async function readPartial(res: Response, deadline: number, maxBytes: number): Promise<string> {
+  if (!res.body) return "";
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let html = "";
+  let bytes = 0;
+  try {
+    while (bytes < maxBytes && Date.now() < deadline) {
+      const left = deadline - Date.now();
+      const chunk = await Promise.race([reader.read(), new Promise<null>((r) => setTimeout(() => r(null), left))]);
+      if (!chunk || chunk.done) break;
+      bytes += chunk.value.byteLength;
+      html += decoder.decode(chunk.value, { stream: true });
+    }
+  } catch {
+    // Conexión cortada: se usa lo que haya llegado.
+  } finally {
+    reader.cancel().catch(() => {});
+  }
+  return html;
+}
+
+/**
+ * Lee título, imagen y precio de una página de producto (Open Graph, JSON-LD y Amazon). Nunca lanza:
+ * si la tienda bloquea o tarda, usa el nombre que venga en la ruta del link o, al final, el dominio.
  */
 export async function fetchLinkMetadata(rawUrl: string): Promise<LinkMetadata | null> {
-  let url: URL;
+  let original: URL;
   try {
-    url = new URL(rawUrl.trim());
+    original = new URL(rawUrl.trim());
   } catch {
     return null;
   }
-  if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+  if (original.protocol !== "https:" && original.protocol !== "http:") return null;
+  const url = canonicalUrl(original);
   const store = storeFrom(url);
-  const fallback: LinkMetadata = { url: url.toString(), title: store, imageUrl: null, price: null, store };
+  const fallback: LinkMetadata = { url: url.toString(), title: titleFromPath(original) ?? store, imageUrl: null, price: null, store };
   // El servidor no debe pedir direcciones internas (SSRF): se guarda el link sin leerlo.
   if (isPrivateHost(url.hostname)) return fallback;
 
   try {
+    const deadline = Date.now() + 8000;
     const res = await fetch(url, {
-      headers: { "user-agent": UA, "accept-language": "es-MX,es;q=0.9", accept: "text/html" },
+      headers: {
+        "user-agent": UA,
+        "accept-language": "es-MX,es;q=0.9",
+        accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      },
       redirect: "follow",
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(6000),
     });
     if (!res.ok || !(res.headers.get("content-type") ?? "").includes("html")) return fallback;
-    // Solo el <head> importa; cortamos para no procesar páginas enormes.
-    const html = (await res.text()).slice(0, 1_500_000);
+    // Páginas como Amazon pesan >2 MB: lo útil está en el primer 1.2 MB.
+    const html = await readPartial(res, deadline, 1_200_000);
+    if (isBlockedPage(res.url, html)) return fallback;
     const product = jsonLdProduct(html);
     const titleTag = html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1];
-    const title = cleanTitle(meta(html, "og:title") ?? product.name ?? meta(html, "twitter:title") ?? (titleTag ? decodeEntities(titleTag) : null));
+    // Amazon: #productTitle es el nombre limpio, sin el sufijo de la tienda.
+    const amazonTitle = html.match(/id=["']productTitle["'][^>]*>([^<]+)</i)?.[1];
+    const title = cleanTitle(
+      (amazonTitle ? decodeEntities(amazonTitle) : null) ??
+        meta(html, "og:title") ??
+        product.name ??
+        meta(html, "twitter:title") ??
+        (titleTag ? decodeEntities(titleTag) : null),
+    );
     const image =
       meta(html, "og:image") ??
       product.image ??
@@ -113,7 +198,9 @@ export async function fetchLinkMetadata(rawUrl: string): Promise<LinkMetadata | 
       html.match(/data-old-hires=["'](https:\/\/[^"']+)["']/i)?.[1] ??
       html.match(/"hiRes":"(https:\/\/[^"]+)"/)?.[1] ??
       null;
-    const priceRaw = meta(html, "product:price:amount") ?? meta(html, "og:price:amount") ?? product.price ?? meta(html, "price");
+    // Amazon: el precio visible vive en el bloque corePrice como <span class="a-offscreen">$1,234.00</span>.
+    const amazonPrice = html.match(/corePrice[\s\S]{0,4000}?class=["']a-offscreen["']>\s*([^<]+)</i)?.[1];
+    const priceRaw = meta(html, "product:price:amount") ?? meta(html, "og:price:amount") ?? product.price ?? meta(html, "price") ?? amazonPrice;
     const price = priceRaw ? Number(String(priceRaw).replace(/[^\d.]/g, "")) : NaN;
     let imageUrl: string | null = null;
     if (image) {
@@ -125,7 +212,7 @@ export async function fetchLinkMetadata(rawUrl: string): Promise<LinkMetadata | 
     }
     return {
       url: url.toString(),
-      title: (title || store).slice(0, 120),
+      title: (title || fallback.title).slice(0, 120),
       imageUrl: imageUrl?.startsWith("https://") ? imageUrl : null,
       price: Number.isFinite(price) && price > 0 ? Math.round(price * 100) / 100 : null,
       store,

@@ -3,12 +3,15 @@ import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 import { RememberDevice } from "@/components/participant/RememberDevice";
+import { BrandBar } from "@/components/ui/BrandBar";
 import { CopyButton } from "@/components/ui/CopyButton";
+import { UnreadBadge } from "@/components/ui/UnreadBadge";
 import { DotButton } from "@/components/ui/DotButton";
 import { CheckIcon } from "@/components/ui/icons";
 import { Screen, ScreenTitle } from "@/components/ui/primitives";
 import { requireParticipant } from "@/lib/data/access";
 import { getOwnerName } from "@/lib/data/exchanges";
+import { getUnread } from "@/lib/data/gifts";
 import { appUrl, formatShortDate, whatsappHref } from "@/lib/format";
 import { t } from "@/lib/i18n";
 
@@ -30,7 +33,11 @@ function Step({ n, done, current, title, hint }: { n: number; done?: boolean; cu
 
 async function Home({ params, searchParams }: { params: Promise<{ inviteCode: string; token: string }>; searchParams: Promise<{ nuevo?: string }> }) {
   const [{ exchange, me, inviteCode, token, base }, { nuevo }] = await Promise.all([requireParticipant(params), searchParams]);
-  const owner = await getOwnerName(exchange);
+  const drawnWithMailbox = exchange.status === "drawn" && exchange.rules.mailboxEnabled;
+  const [owner, unread] = await Promise.all([
+    getOwnerName(exchange),
+    drawnWithMailbox ? getUnread(exchange.id, me.id, me.revealed) : { giver: 0, receiver: 0 },
+  ]);
   const link = appUrl(base);
   const drawn = exchange.status === "drawn";
   const hasList = me.wishCount > 0;
@@ -38,12 +45,13 @@ async function Home({ params, searchParams }: { params: Promise<{ inviteCode: st
   return (
     <>
       <RememberDevice entry={{ inviteCode, token, exchangeName: exchange.name }} />
-      <Image src="/illustrations/web/08-esperando.webp" width={845} height={385} alt={t("home.alt")} priority className="mx-auto mt-8 mb-2.5 h-[150px] w-auto" />
+      <BrandBar className="pt-2" />
+      <Image src="/illustrations/web/08-esperando.webp" width={845} height={385} alt={t("home.alt")} priority className="mx-auto mt-4 mb-2.5 h-[150px] w-auto" />
       <ScreenTitle>{nuevo ? t("home.welcome") : t("home.hello", { name: me.name.split(" ")[0] })}</ScreenTitle>
       <p className="mt-2.5 text-[17px] leading-snug text-gris">{t("home.intro", { exchange: exchange.name })}</p>
 
       {drawn && (
-        <Link href={me.revealed ? `${base}/persona` : `${base}/sobre`} className="mt-5 flex flex-col gap-1 rounded-panel bg-coral p-5">
+        <Link href={me.revealed ? `${base}/persona` : `${base}/sobre`} className="mt-5 flex flex-col gap-1 rounded-panel bg-pasto p-5">
           <span className="text-[22px] leading-tight font-medium tracking-[-0.03em]">{me.revealed ? t("home.revealedTitle") : t("home.drawnTitle")}</span>
           <span className="text-sm">{me.revealed ? t("home.revealedText") : t("home.drawnText")}</span>
         </Link>
@@ -82,12 +90,15 @@ async function Home({ params, searchParams }: { params: Promise<{ inviteCode: st
       <div className="mt-auto flex flex-col gap-2.5 pt-6">
         {drawn && me.revealed ? (
           <>
-            <DotButton href={`${base}/persona`} variant="coral" full>
+            <DotButton href={`${base}/persona`} variant="pasto" full>
               {t("home.seePerson")}
             </DotButton>
             {exchange.rules.mailboxEnabled && (
-              <DotButton href={`${base}/buzon`} variant="cielo" full>
-                {t("home.mailbox")}
+              <DotButton href={`${base}/buzon`} variant="tinta" full>
+                <span>
+                  {t("home.mailbox")}
+                  <UnreadBadge n={unread.giver + unread.receiver} />
+                </span>
               </DotButton>
             )}
             <DotButton href={`${base}/lista`} variant="blanco" full>
@@ -95,7 +106,7 @@ async function Home({ params, searchParams }: { params: Promise<{ inviteCode: st
             </DotButton>
           </>
         ) : drawn ? (
-          <DotButton href={`${base}/sobre`} variant="coral" full>
+          <DotButton href={`${base}/sobre`} variant="pasto" full>
             {t("home.openEnvelope")}
           </DotButton>
         ) : (

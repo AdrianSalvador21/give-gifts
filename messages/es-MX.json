@@ -12,7 +12,8 @@
     "openMenu": "Abrir menú",
     "closeMenu": "Cerrar menú",
     "main": "Principal",
-    "footer": "Pie de página"
+    "footer": "Pie de página",
+    "signIn": "Entrar"
   },
   "landing": {
     "hero": {
@@ -112,7 +113,9 @@
       "tooMany": "Demasiados intentos. Espera un momento.",
       "nameRequired": "Escribe tu nombre.",
       "session": "No pudimos iniciar tu sesión. Inténtalo de nuevo."
-    }
+    },
+    "creating": "Creando tu cuenta…",
+    "signingIn": "Entrando…"
   },
   "create": {
     "step": "Paso {n} de 4",
@@ -275,9 +278,15 @@
       "title": "El nombre necesita entre 1 y 120 caracteres.",
       "note": "La nota puede tener hasta 200 caracteres.",
       "price": "Escribe un precio válido.",
-      "generic": "No pudimos guardar el cambio. Inténtalo de nuevo."
+      "generic": "No pudimos guardar el cambio. Inténtalo de nuevo.",
+      "url": "Ese link no parece válido. Revisa que esté completo."
     },
-    "alt": "Regalito sostiene una pinza junto a un tendedero vacío"
+    "alt": "Regalito sostiene una pinza junto a un tendedero vacío",
+    "urlLabel": "Link de la tienda",
+    "urlPlaceholder": "https://…",
+    "urlHint": "Cámbialo o bórralo para quitarlo.",
+    "addLink": "Agregar link",
+    "saving": "Guardando…"
   },
   "panel": {
     "badge": "Organizas",
@@ -442,7 +451,9 @@
       "long": "El mensaje puede tener hasta 500 caracteres.",
       "closed": "El buzón está apagado.",
       "generic": "No se pudo enviar. Inténtalo de nuevo."
-    }
+    },
+    "unreadLabel": "{n} mensajes nuevos",
+    "unreadLabelOne": "1 mensaje nuevo"
   },
   "mine": {
     "title": "Mis intercambios",

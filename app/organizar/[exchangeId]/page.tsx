@@ -109,7 +109,7 @@ async function Panel({ params }: { params: Promise<{ exchangeId: string }> }) {
           {drawn ? (
             <>
               {owner && (
-                <Link href={`/i/${exchange.inviteCode}/p/${owner.token}/sobre`} className="flex items-center gap-3 rounded-[24px] bg-coral p-4">
+                <Link href={`/i/${exchange.inviteCode}/p/${owner.token}/sobre`} className="flex items-center gap-3 rounded-[24px] bg-pasto p-4">
                   <Image src="/illustrations/web/09-revelacion.webp" width={692} height={669} alt="" className="h-[86px] w-[90px] object-contain" />
                   <span className="flex flex-1 flex-col gap-1">
                     <span className="text-[22px] leading-tight font-medium tracking-[-0.03em]">{t("panel.envelopeTitle")}</span>
@@ -121,7 +121,7 @@ async function Panel({ params }: { params: Promise<{ exchangeId: string }> }) {
                 </Link>
               )}
               <div className="flex flex-col gap-4 rounded-[24px] bg-white p-[18px]">
-                <Bar label={t("panel.revealed")} value={participants.filter((p) => p.revealed).length} total={total} color="bg-cielo" />
+                <Bar label={t("panel.revealed")} value={participants.filter((p) => p.revealed).length} total={total} color="bg-tinta" />
                 <Bar label={t("panel.lists")} value={withList} total={total} color="bg-sol" />
                 <Bar label={t("panel.bought")} value={participants.filter((p) => p.bought).length} total={total} color="bg-pasto" />
                 <p className="text-sm text-gris">
@@ -148,7 +148,7 @@ async function Panel({ params }: { params: Promise<{ exchangeId: string }> }) {
                   )}
                 </span>
                 {total >= 3 && (
-                  <DotButton href={`/organizar/${exchange.id}/sorteo`} variant="blanco" dotClassName="bg-coral" className="h-[50px] self-start text-base">
+                  <DotButton href={`/organizar/${exchange.id}/sorteo`} variant="blanco" className="h-[50px] self-start text-base">
                     {t("panel.drawCta")}
                   </DotButton>
                 )}

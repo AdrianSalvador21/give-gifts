@@ -6,10 +6,12 @@ import { Suspense } from "react";
 import { wishMeta, WishThumb } from "@/components/participant/WishDisplay";
 import { DotButton } from "@/components/ui/DotButton";
 import { CheckIcon } from "@/components/ui/icons";
+import { BrandBar } from "@/components/ui/BrandBar";
 import { Pill, Screen, TopBar } from "@/components/ui/primitives";
+import { UnreadBadge } from "@/components/ui/UnreadBadge";
 import { requireParticipant } from "@/lib/data/access";
 import { getWishes } from "@/lib/data/exchanges";
-import { getMyAssignment } from "@/lib/data/gifts";
+import { getMyAssignment, getUnread } from "@/lib/data/gifts";
 import { formatMoney } from "@/lib/format";
 import { t } from "@/lib/i18n";
 import { BoughtButton, PlanButton } from "./GiftActions";
@@ -24,12 +26,16 @@ async function Person({ params }: { params: Promise<{ inviteCode: string; token:
   const mine = await getMyAssignment(exchange.id, me.id);
   if (!mine) redirect(base);
   const { assignment, receiver } = mine;
-  const wishes = await getWishes(exchange.id, receiver.id);
+  const [wishes, unread] = await Promise.all([
+    getWishes(exchange.id, receiver.id, true),
+    exchange.rules.mailboxEnabled ? getUnread(exchange.id, me.id, true) : { giver: 0, receiver: 0 },
+  ]);
 
   return (
     <>
+      <BrandBar className="pt-2" />
       <TopBar backHref={base} title={t("person.title")} />
-      <div className="mt-4 flex items-end justify-between gap-3 rounded-[24px] bg-coral px-[22px] py-5">
+      <div className="mt-4 flex items-end justify-between gap-3 rounded-[24px] bg-pasto px-[22px] py-5">
         <div className="flex min-w-0 flex-col gap-1">
           <span className="text-sm font-medium">{t("person.givesTo")}</span>
           <span className="text-[44px] leading-[0.95] font-medium tracking-[-0.05em] break-words">{receiver.name}</span>
@@ -64,7 +70,7 @@ async function Person({ params }: { params: Promise<{ inviteCode: string; token:
                         {wishMeta(w)}
                         {w.note ? ` · «${w.note}»` : ""}
                       </span>
-                      {w.favorite && <Pill className="mt-1 self-start bg-sol px-2.5 py-0.5 text-xs">{t("person.favorite")}</Pill>}
+                      {w.favorite && <Pill className="mt-1 self-start bg-pasto px-2.5 py-0.5 text-xs">{t("person.favorite")}</Pill>}
                     </span>
                   </div>
                   <div className="flex flex-wrap items-center justify-between gap-2 pl-[72px]">
@@ -84,8 +90,11 @@ async function Person({ params }: { params: Promise<{ inviteCode: string; token:
 
       <div className="mt-auto flex flex-col gap-2.5 pt-6">
         {exchange.rules.mailboxEnabled && (
-          <DotButton href={`${base}/buzon`} variant="cielo" full>
-            {t("person.ask")}
+          <DotButton href={`${base}/buzon`} variant="tinta" full>
+            <span>
+              {t("person.ask")}
+              <UnreadBadge n={unread.giver + unread.receiver} />
+            </span>
           </DotButton>
         )}
         {me.bought ? (

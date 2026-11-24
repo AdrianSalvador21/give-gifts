@@ -3,6 +3,7 @@ import Image from "next/image";
 import { Suspense } from "react";
 import { AddWishForm } from "@/components/participant/AddWishForm";
 import { WishItem } from "@/components/participant/WishItem";
+import { BrandBar } from "@/components/ui/BrandBar";
 import { Pill, Screen, ScreenTitle, TopBar } from "@/components/ui/primitives";
 import { requireParticipant } from "@/lib/data/access";
 import { getWishes, MAX_WISHES } from "@/lib/data/exchanges";
@@ -17,6 +18,7 @@ async function MyList({ params }: { params: Promise<{ inviteCode: string; token:
 
   return (
     <>
+      <BrandBar className="pt-2" />
       <TopBar backHref={base} title={exchange.name} />
       {empty ? (
         <>
@@ -39,7 +41,7 @@ async function MyList({ params }: { params: Promise<{ inviteCode: string; token:
       </div>
 
       {!empty && (
-        <ul className="mt-4 flex flex-col gap-2.5">
+        <ul className="mt-4 grid gap-2.5 lg:grid-cols-2">
           {wishes.map((w, i) => (
             <WishItem key={w.id} wish={w} index={i} inviteCode={inviteCode} token={token} />
           ))}
@@ -51,7 +53,7 @@ async function MyList({ params }: { params: Promise<{ inviteCode: string; token:
 
 export default function ListaPage({ params }: PageProps<"/i/[inviteCode]/p/[token]/lista">) {
   return (
-    <Screen>
+    <Screen className="lg:max-w-[880px]">
       <Suspense fallback={<p className="pt-10 text-gris">{t("common.loading")}</p>}>
         <MyList params={params} />
       </Suspense>

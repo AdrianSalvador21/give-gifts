@@ -14,13 +14,25 @@ export function WishItem({ wish, index, inviteCode, token }: { wish: Wish; index
   const [title, setTitle] = useState(wish.title);
   const [note, setNote] = useState(wish.note ?? "");
   const [price, setPrice] = useState(wish.price != null ? String(wish.price) : "");
+  const [url, setUrl] = useState(wish.url ?? "");
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+
+  // Al abrir la edición se parte de lo guardado (pudo cambiar tras agregar un link).
+  const startEditing = () => {
+    setTitle(wish.title);
+    setNote(wish.note ?? "");
+    setPrice(wish.price != null ? String(wish.price) : "");
+    setUrl(wish.url ?? "");
+    setError(null);
+    setEditing(true);
+  };
 
   const run = (task: () => Promise<{ ok: boolean; error?: string }>, after?: () => void) =>
     start(async () => {
       const res = await task();
-      if (!res.ok) setError(t(`list.errors.${res.error === "title" || res.error === "note" || res.error === "price" ? res.error : "generic"}`));
+      const known = res.error === "title" || res.error === "note" || res.error === "price" || res.error === "url";
+      if (!res.ok) setError(t(`list.errors.${known ? (res.error as "title" | "note" | "price" | "url") : "generic"}`));
       else {
         setError(null);
         after?.();
@@ -40,13 +52,13 @@ export function WishItem({ wish, index, inviteCode, token }: { wish: Wish; index
           aria-label={wish.favorite ? t("list.unfavorite") : t("list.favorite")}
           aria-pressed={wish.favorite}
           onClick={() => run(() => updateWish(inviteCode, token, wish.id, { favorite: !wish.favorite }))}
-          className={`grid size-11 shrink-0 place-items-center rounded-full ${wish.favorite ? "bg-coral" : "bg-crema"}`}
+          className={`grid size-11 shrink-0 place-items-center rounded-full ${wish.favorite ? "bg-pasto" : "bg-crema"}`}
         >
           <StarIcon size={18} filled={wish.favorite} />
         </button>
       </div>
 
-      {wish.favorite && !editing && <span className="self-start rounded-full bg-coral px-2.5 py-1 text-xs font-medium">{t("list.favorite")}</span>}
+      {wish.favorite && !editing && <span className="self-start rounded-full bg-pasto px-2.5 py-1 text-xs font-medium">{t("list.favorite")}</span>}
       {wish.note && !editing && <p className="rounded-[12px] bg-crema px-3 py-2 text-[13px]">{wish.note}</p>}
 
       {editing ? (
@@ -56,16 +68,33 @@ export function WishItem({ wish, index, inviteCode, token }: { wish: Wish; index
             e.preventDefault();
             const p = price.trim() ? Number(price.replace(/[^\d.]/g, "")) : null;
             if (p !== null && !(p > 0)) return setError(t("list.errors.price"));
-            run(() => updateWish(inviteCode, token, wish.id, { title, note: note.trim() || null, price: p }), () => setEditing(false));
+            // El link solo viaja si cambió: así no se vuelve a leer la tienda en cada guardado.
+            const nextUrl = url.trim() === (wish.url ?? "") ? undefined : url.trim() || null;
+            run(() => updateWish(inviteCode, token, wish.id, { title, note: note.trim() || null, price: p, url: nextUrl }), () => setEditing(false));
           }}
         >
           <TextField id={`w-title-${wish.id}`} label={t("list.titleLabel")} value={title} maxLength={120} onChange={(e) => setTitle(e.target.value)} />
+          <TextField
+            id={`w-url-${wish.id}`}
+            type="url"
+            inputMode="url"
+            label={
+              <>
+                {t("list.urlLabel")} <span className="font-normal text-gris">{t("common.optional")}</span>
+              </>
+            }
+            placeholder={t("list.urlPlaceholder")}
+            value={url}
+            maxLength={2000}
+            onChange={(e) => setUrl(e.target.value)}
+            hint={wish.url && url.trim() === wish.url ? t("list.urlHint") : undefined}
+          />
           <TextField id={`w-note-${wish.id}`} label={t("list.noteLabel")} placeholder={t("list.notePlaceholder")} value={note} maxLength={200} onChange={(e) => setNote(e.target.value)} />
           <TextField id={`w-price-${wish.id}`} label={t("list.priceLabel")} inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} />
           {error && <p className="text-sm text-[#B23A2A]">{error}</p>}
           <div className="flex gap-2">
             <button type="submit" disabled={pending} className="h-11 flex-1 rounded-boton bg-tinta font-medium text-white">
-              {t("list.save")}
+              {pending ? t("list.saving") : t("list.save")}
             </button>
             <button type="button" onClick={() => setEditing(false)} className="h-11 flex-1 rounded-boton bg-crema font-medium">
               {t("list.cancel")}
@@ -73,10 +102,15 @@ export function WishItem({ wish, index, inviteCode, token }: { wish: Wish; index
           </div>
         </form>
       ) : (
-        <div className="flex items-center gap-4 text-sm font-medium">
-          <button type="button" onClick={() => setEditing(true)} className="underline underline-offset-4">
+        <div className="mt-auto flex items-center gap-4 text-sm font-medium">
+          <button type="button" onClick={startEditing} className="underline underline-offset-4">
             {t("list.edit")}
           </button>
+          {!wish.url && (
+            <button type="button" onClick={startEditing} className="underline underline-offset-4">
+              {t("list.addLink")}
+            </button>
+          )}
           {wish.url && (
             <a href={wish.url} target="_blank" rel="noopener noreferrer nofollow" className="underline underline-offset-4">
               {t("list.openStore", { store: wish.store ?? "" })}

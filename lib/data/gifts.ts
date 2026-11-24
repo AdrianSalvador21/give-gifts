@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { DocumentReference } from "firebase-admin/firestore";
+import { FieldValue, type DocumentReference } from "firebase-admin/firestore";
 import { connection } from "next/server";
 import { exchangesCol, participantsCol, toParticipant } from "./exchanges";
 import type { AssignmentDoc, MessageDoc, Participant, ThreadDoc } from "./types";
@@ -40,4 +40,37 @@ export async function readMessages(thread: DocumentReference, role: MailboxRole)
       return { id: d.id, mine: m.from === role, text: m.text, at: m.createdAt?.toDate().toISOString() ?? new Date().toISOString() };
     })
     .reverse();
+}
+
+export type Unread = Record<MailboxRole, number>;
+
+/** Mensajes del otro lado que llegaron después de la última vez que `role` abrió el hilo (máx. 50). */
+export async function unreadCount(thread: DocumentReference, role: MailboxRole): Promise<number> {
+  const snap = await thread.get();
+  if (!snap.exists) return 0;
+  const readAt = (snap.data() as ThreadDoc)[role === "giver" ? "giverReadAt" : "receiverReadAt"];
+  let query = thread.collection("messages").orderBy("createdAt", "desc").limit(MAX_MESSAGES);
+  if (readAt) query = query.where("createdAt", ">", readAt);
+  const messages = await query.get();
+  return messages.docs.filter((d) => (d.data() as MessageDoc).from !== role).length;
+}
+
+/** Marca el hilo como leído por `role` (al verlo en el buzón). */
+export async function markRead(thread: DocumentReference, role: MailboxRole): Promise<void> {
+  await thread.update({ [role === "giver" ? "giverReadAt" : "receiverReadAt"]: FieldValue.serverTimestamp() });
+}
+
+/**
+ * Nuevos por pestaña. La de «Tu persona» (giver) solo cuenta si ya abrió su sobre: antes no puede verla.
+ */
+export async function getUnread(exchangeId: string, meId: string, revealed: boolean): Promise<Unread> {
+  const [giverThread, receiverThread] = await Promise.all([
+    revealed ? getThreadRef(exchangeId, meId, "giver") : null,
+    getThreadRef(exchangeId, meId, "receiver"),
+  ]);
+  const [giver, receiver] = await Promise.all([
+    giverThread ? unreadCount(giverThread, "giver") : 0,
+    receiverThread ? unreadCount(receiverThread, "receiver") : 0,
+  ]);
+  return { giver, receiver };
 }
