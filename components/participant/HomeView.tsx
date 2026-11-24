@@ -73,14 +73,16 @@ const ART = {
   fiesta: { src: "/illustrations/web/05-fiesta.webp", w: 1200, h: 802 },
 } satisfies Record<string, Art>;
 
-/** Ya se sorteó y su lista sigue vacía: quien le regala no tiene de dónde escoger, así que la lista va primero. */
-function needsListAfterDraw({ exchange, me }: Pick<HomeData, "exchange" | "me">): boolean {
+/**
+ * Ya se sorteó y su lista sigue vacía. La lista es opcional: no bloquea el sobre, solo se sugiere
+ * como acción secundaria (quien le regala todavía no tiene de dónde escoger).
+ */
+function emptyListAfterDraw({ exchange, me }: Pick<HomeData, "exchange" | "me">): boolean {
   return exchange.status === "drawn" && me.wishCount === 0 && !me.bought;
 }
 
 function artFor({ exchange, me }: HomeData): Art {
   if (exchange.status !== "drawn") return me.wishCount < 3 ? ART.lista : ART.espera;
-  if (needsListAfterDraw({ exchange, me })) return ART.lista;
   if (!me.revealed) return ART.sobre;
   if (!me.bought) return ART.comprar;
   return exchange.rules.mailboxEnabled ? ART.buzon : ART.fiesta;
@@ -93,62 +95,21 @@ function NextAction({ exchange, me, owner, unread, base }: HomeData) {
   const art = ({ src, w, h }: Art) => <Image src={src} width={w} height={h} alt="" priority className="h-[84px] w-auto sm:h-[130px] lg:h-[150px]" />;
 
   if (!drawn) {
+    // Antes del sorteo la tarjeta siempre dice que todavía no se sortea; la lista es opcional.
     const missing = Math.max(0, 3 - me.wishCount);
-    if (missing > 0) {
-      return (
-        <ActionCard
-          {...CARD}
-          eyebrow={t("home.nextStep")}
-          title={me.wishCount === 0 ? t("home.step2") : missing === 1 ? t("home.moreIdeasOne") : t("home.moreIdeas", { n: missing })}
-          text={t("home.step2Hint")}
-          art={art(ART.lista)}
-          progress={<IdeaSegments n={me.wishCount} />}
-          action={
-            <DotButton href={`${base}/lista`} variant="blanco" transitionTypes={FWD}>
-              {me.wishCount === 0 ? t("home.fillList") : t("home.editList")}
-            </DotButton>
-          }
-        />
-      );
-    }
     return (
       <ActionCard
         {...CARD}
-        tone="sol-50"
-        eyebrow={t("home.waitEyebrow")}
-        title={t("home.waitTitle")}
-        text={t("home.waitText", { owner })}
-        art={art(ART.espera)}
+        {...(missing > 0 ? {} : { tone: "sol-50" as const })}
+        eyebrow={t("home.notDrawnEyebrow")}
+        title={missing === 0 ? t("home.waitTitle") : me.wishCount === 0 ? t("home.listMeanwhile") : missing === 1 ? t("home.moreIdeasOne") : t("home.moreIdeas", { n: missing })}
+        text={t("home.notDrawnText", { owner })}
+        art={art(missing > 0 ? ART.lista : ART.espera)}
         progress={<IdeaSegments n={me.wishCount} />}
         action={
           <DotButton href={`${base}/lista`} variant="blanco" transitionTypes={FWD}>
-            {t("home.editList")}
+            {me.wishCount === 0 ? t("home.fillList") : t("home.editList")}
           </DotButton>
-        }
-      />
-    );
-  }
-
-  if (needsListAfterDraw({ exchange, me })) {
-    // «Abrir mi sobre» (o «Ver a mi persona») sigue a un toque, como acción secundaria.
-    const second = me.revealed ? { href: `${base}/persona`, label: t("home.seePerson") } : { href: `${base}/sobre`, label: t("home.openEnvelope") };
-    return (
-      <ActionCard
-        {...CARD}
-        eyebrow={t("home.nextStep")}
-        title={t("home.emptyDrawnTitle")}
-        text={t("home.emptyDrawnText")}
-        art={art(ART.lista)}
-        progress={<IdeaSegments n={0} />}
-        action={
-          <div className="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
-            <DotButton href={`${base}/lista`} variant="blanco" transitionTypes={FWD}>
-              {t("home.fillList")}
-            </DotButton>
-            <Link href={second.href} transitionTypes={FWD} className="inline-flex min-h-11 items-center self-start font-medium underline underline-offset-4 sm:self-center">
-              {second.label}
-            </Link>
-          </div>
         }
       />
     );
@@ -162,12 +123,19 @@ function NextAction({ exchange, me, owner, unread, base }: HomeData) {
         ribbon="sol"
         eyebrow={t("home.envelopeEyebrow")}
         title={t("home.drawnTitle")}
-        text={t("home.drawnText")}
+        text={emptyListAfterDraw({ exchange, me }) ? `${t("home.drawnText")} ${t("home.emptyListNudge")}` : t("home.drawnText")}
         art={art(ART.sobre)}
         action={
-          <DotButton href={`${base}/sobre`} variant="blanco" transitionTypes={FWD}>
-            {t("home.openEnvelope")}
-          </DotButton>
+          <div className="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+            <DotButton href={`${base}/sobre`} variant="blanco" transitionTypes={FWD}>
+              {t("home.openEnvelope")}
+            </DotButton>
+            {emptyListAfterDraw({ exchange, me }) && (
+              <Link href={`${base}/lista`} transitionTypes={FWD} className="inline-flex min-h-11 items-center self-start font-medium underline underline-offset-4 sm:self-center">
+                {t("home.fillList")}
+              </Link>
+            )}
+          </div>
         }
       />
     );
@@ -181,12 +149,19 @@ function NextAction({ exchange, me, owner, unread, base }: HomeData) {
         ribbon="sol"
         eyebrow={t("home.nextStep")}
         title={t("home.buyTitle")}
-        text={t("home.revealedText")}
+        text={emptyListAfterDraw({ exchange, me }) ? `${t("home.revealedText")} ${t("home.emptyListNudge")}` : t("home.revealedText")}
         art={art(ART.comprar)}
         action={
-          <DotButton href={`${base}/persona`} variant="blanco" transitionTypes={FWD}>
-            {t("home.seePerson")}
-          </DotButton>
+          <div className="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+            <DotButton href={`${base}/persona`} variant="blanco" transitionTypes={FWD}>
+              {t("home.seePerson")}
+            </DotButton>
+            {emptyListAfterDraw({ exchange, me }) && (
+              <Link href={`${base}/lista`} transitionTypes={FWD} className="inline-flex min-h-11 items-center self-start font-medium underline underline-offset-4 sm:self-center">
+                {t("home.fillList")}
+              </Link>
+            )}
+          </div>
         }
       />
     );
@@ -222,24 +197,23 @@ function NextAction({ exchange, me, owner, unread, base }: HomeData) {
 function stepsFor({ exchange, me, owner }: HomeData): StepItem[] {
   const drawn = exchange.status === "drawn";
   const hasList = me.wishCount > 0;
-  // Igual que la tarjeta principal: después del sorteo, una lista vacía es lo actual (y lo demás espera).
-  const listFirst = needsListAfterDraw({ exchange, me });
+  // La lista es opcional: nunca es el paso actual. Antes del sorteo lo actual es esperarlo; después, el sobre.
   return [
     { title: t("home.step1"), state: "done" },
     {
-      title: hasList ? (me.wishCount === 1 ? t("home.step2DoneOne") : t("home.step2Done", { n: me.wishCount })) : t("home.step2"),
+      title: hasList ? (me.wishCount === 1 ? t("home.step2DoneOne") : t("home.step2Done", { n: me.wishCount })) : t("home.step2Optional"),
       hint: hasList ? undefined : t("home.step2Hint"),
-      state: hasList ? "done" : drawn && !listFirst ? "todo" : "current",
+      state: hasList ? "done" : "todo",
     },
     {
       title: t("home.step3"),
-      hint: drawn ? undefined : t("home.step3Hint", { owner }),
-      state: me.revealed ? "done" : drawn && !listFirst ? "current" : "todo",
+      hint: drawn ? (me.revealed ? undefined : t("home.step3HintDrawn")) : t("home.step3Hint", { owner }),
+      state: me.revealed ? "done" : "current",
     },
     {
       title: t("home.step4"),
       hint: t("home.step4Hint", { date: formatShortDate(exchange.eventAt, exchange.timeZone) }),
-      state: me.bought ? "done" : me.revealed && !listFirst ? "current" : "todo",
+      state: me.bought ? "done" : me.revealed ? "current" : "todo",
     },
   ];
 }
