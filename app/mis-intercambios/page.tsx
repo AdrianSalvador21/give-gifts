@@ -25,6 +25,7 @@ async function Mine() {
     const steps = ownerSteps({
       participates: Boolean(me),
       drawn: e.status === "drawn",
+      announced: Boolean(e.announcedAt),
       total: e.participantCount,
       wishCount: me?.wishCount ?? 0,
       revealed: Boolean(me?.revealed),

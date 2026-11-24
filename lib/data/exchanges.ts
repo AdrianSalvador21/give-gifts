@@ -35,12 +35,13 @@ export const wishesCol = (exchangeId: string, participantId: string) => particip
 export function toExchange(snap: DocumentSnapshot): Exchange {
   // createdAt/updatedAt se descartan: los Timestamp de Firestore no se pueden pasar a componentes cliente.
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { createdAt, updatedAt, eventAt, drawnAt, timeZone, registrationOpen, ...rest } = snap.data() as ExchangeDoc;
+  const { createdAt, updatedAt, eventAt, drawnAt, timeZone, registrationOpen, announcedAt, ...rest } = snap.data() as ExchangeDoc;
   return {
     ...rest,
     id: snap.id,
     eventAt: eventAt.toDate().toISOString(),
     drawnAt: drawnAt ? drawnAt.toDate().toISOString() : null,
+    announcedAt: announcedAt ? announcedAt.toDate().toISOString() : null,
     timeZone: timeZone || DEFAULT_TIME_ZONE,
     registrationOpen: registrationOpen !== false,
   };

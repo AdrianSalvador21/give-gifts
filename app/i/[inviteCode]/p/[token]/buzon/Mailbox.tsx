@@ -18,7 +18,7 @@ const POLL_MAX_MS = 60_000;
 type Props = {
   inviteCode: string;
   token: string;
-  receiverName: string | null; // null si todavía no abre su sobre: entonces solo ve la pestaña de su amigo secreto
+  receiverName: string | null; // null si todavía no abre su sobre: entonces solo ve la pestaña de quien le regala
   initial: Record<MailboxRole, MailboxMessage[]>;
   initialRole: MailboxRole;
   initialUnread: Unread;
@@ -56,7 +56,7 @@ function SecretAvatar() {
 }
 
 /**
- * P3. Dos conversaciones: como quien regala («Tu persona») y como quien recibe («Tu amigo secreto»).
+ * P3. Dos conversaciones: como quien regala («Tu persona») y como quien recibe («Quien te regala»).
  * Móvil: pestañas arriba + conversación. lg: lista de conversaciones a la izquierda y la conversación a la derecha.
  */
 export function Mailbox({ inviteCode, token, receiverName, initial, initialRole, initialUnread, timeZone = DEFAULT_TIME_ZONE }: Props) {

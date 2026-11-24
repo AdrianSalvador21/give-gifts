@@ -8,7 +8,7 @@ import { DotButton } from "@/components/ui/DotButton";
 import { AvatarStack, Figure, HandNote, Pill, ScreenTitle, SplitShell } from "@/components/ui/primitives";
 import { getByToken, getExchangeByInvite, getInviteView, getOwnerName, getParticipantPreview } from "@/lib/data/exchanges";
 import { deviceCookie } from "@/lib/data/participants";
-import { formatEvent, formatMoney, formatShortDate } from "@/lib/format";
+import { formatEvent, formatMoney, formatShortDate, whatsappHref } from "@/lib/format";
 import { t } from "@/lib/i18n";
 import { JoinForm } from "./JoinForm";
 
@@ -79,8 +79,41 @@ function Message({ title, text }: { title: string; text: string }) {
   );
 }
 
+/**
+ * Ya se sorteó: casi siempre es alguien del grupo que perdió su link (su celular no tiene la cookie del dispositivo).
+ * Lo principal es pedirle el link a quien organiza; quien no estaba apuntado solo necesita saber que ya cerró.
+ */
+function DrawnMessage({ exchangeName, owner }: { exchangeName: string; owner: string }) {
+  const who = owner || t("join.ownerFallback");
+  const first = owner.trim().split(/\s+/)[0] || who;
+  return (
+    <div className="flex flex-col gap-3">
+      <Pill tone="blanco" className="self-start">
+        {t("join.badge")}
+      </Pill>
+      <ScreenTitle size="sm">{t("join.closedTitle")}</ScreenTitle>
+      <p className="text-[17px] leading-snug text-gris">{t("join.closedTextOwner", { exchange: exchangeName, owner: who })}</p>
+      <DotButton
+        href={whatsappHref(t("join.closedAskText", { owner: first, exchange: exchangeName }))}
+        target="_blank"
+        rel="noopener noreferrer"
+        variant="tinta"
+        icon="send"
+        ink
+        full="mobile"
+        className="mt-4 lg:self-start"
+      >
+        {t("join.closedAsk", { owner: first })}
+      </DotButton>
+      <p className="mt-2 text-sm leading-snug text-gris">{t("join.closedNotJoined")}</p>
+      <DotButton href="/" variant="blanco" full="mobile" className="mt-2 lg:self-start">
+        {t("join.backHome")}
+      </DotButton>
+    </div>
+  );
+}
+
 const BLOCKED = {
-  drawn: { title: "join.closedTitle", text: "join.closedTextOwner" },
   paused: { title: "join.pausedTitle", text: "join.pausedText" },
   full: { title: "join.fullTitle", text: "join.fullText" },
 } as const;
@@ -107,6 +140,13 @@ async function Invitation({ params }: { params: Promise<{ inviteCode: string }> 
   if (known && (await getByToken(inviteCode, known))) redirect(`/i/${inviteCode}/p/${known}`);
 
   const { exchange, ownerName: owner, block } = view;
+  if (block === "drawn") {
+    return (
+      <InviteShell>
+        <DrawnMessage exchangeName={exchange.name} owner={owner} />
+      </InviteShell>
+    );
+  }
   if (block) {
     const b = BLOCKED[block];
     return (

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { AnnounceLink } from "@/components/organizer/AnnounceLink";
 import { DotButton } from "@/components/ui/DotButton";
 import { LockIcon } from "@/components/ui/icons";
 import { Eyebrow, TONE_BG, type Tone } from "@/components/ui/primitives";
@@ -13,8 +14,10 @@ import { LIST_GOAL, ownerSteps, type OwnerStep, type OwnerStepKey } from "@/lib/
 
 const FWD = ["nav-forward"];
 
-type Now = { title: string; text: string; cta: string; href: string; external?: boolean; tone: Tone; ribbon: string };
-type Detail = { title: string; sub: string; aside?: ReactNode; now?: Now };
+/** `announce`: el CTA es «Avisar al grupo» (abre WhatsApp y guarda el aviso con markAnnounced). */
+type Now = { title: string; text: string; cta: string; href: string; announce?: boolean; tone: Tone; ribbon: string };
+/** `href`: a dónde lleva el mosaico del paso en escritorio (si se puede actuar en él). */
+type Detail = { title: string; sub: string; aside?: ReactNode; now?: Now; href?: string };
 
 const asideLink = "inline-flex min-h-11 items-center text-sm font-medium text-tinta underline-offset-4 hover:underline";
 
@@ -45,6 +48,7 @@ function detail(key: OwnerStepKey, step: OwnerStep, { exchange, owner, total, an
       return {
         title: t("panel.steps.list.title"),
         sub: n >= LIST_GOAL ? t("panel.ideasCount", { n }) : ideas(n),
+        href,
         aside: (
           <Link href={href} transitionTypes={FWD} className={asideLink}>
             {n >= LIST_GOAL ? t("panel.ideasCount", { n }) : ideas(n)}
@@ -85,6 +89,7 @@ function detail(key: OwnerStepKey, step: OwnerStep, { exchange, owner, total, an
       const drawn = exchange.status === "drawn";
       return {
         title: t("panel.steps.draw.title"),
+        href: drawn || locked ? undefined : href,
         sub: drawn ? t("panel.steps.draw.sub", { date: formatShortDate(exchange.drawnAt ?? exchange.eventAt, exchange.timeZone) }) : locked ? t("panel.steps.fromThree") : t("panel.steps.draw.ready"),
         aside: drawn ? t("panel.steps.done") : locked ? <Locked>{t("panel.steps.fromThree")}</Locked> : (
           <Link href={href} transitionTypes={FWD} className={asideLink}>
@@ -119,22 +124,35 @@ function detail(key: OwnerStepKey, step: OwnerStep, { exchange, owner, total, an
             },
       };
     }
-    case "announce":
+    case "announce": {
+      const done = step.state === "done";
       return {
         title: t("panel.steps.announce.title"),
-        sub: locked ? t("panel.steps.afterDraw") : t("panel.steps.announce.sub"),
-        aside: locked ? <Locked>{t("panel.steps.afterDraw")}</Locked> : undefined,
+        sub: done ? t("panel.steps.announce.subDone") : locked ? t("panel.steps.afterDraw") : t("panel.steps.announce.sub"),
+        aside: done ? t("panel.steps.announce.subDone") : locked ? <Locked>{t("panel.steps.afterDraw")}</Locked> : undefined,
         now: {
-          title: t("panel.steps.announce.title"),
+          title: t("panel.steps.announce.nowTitle"),
           text: t("panel.steps.announce.nowText"),
           cta: t("panel.steps.announce.cta"),
           href: announceHref,
-          external: true,
+          announce: true,
           tone: "pasto-50",
           ribbon: "var(--color-pasto)",
         },
       };
+    }
   }
+}
+
+/** Contenido de un mosaico de paso: link si se puede actuar en él (escritorio). */
+function TileBody({ href, children }: { href?: string; children: ReactNode }) {
+  const cls = "flex w-full flex-col gap-1.5 rounded-2xl p-3.5";
+  if (!href) return <div className={cls}>{children}</div>;
+  return (
+    <Link href={href} transitionTypes={FWD} className={`${cls} levantable text-tinta no-underline`}>
+      {children}
+    </Link>
+  );
 }
 
 function Locked({ children }: { children: ReactNode }) {
@@ -154,7 +172,7 @@ const TILE: Record<OwnerStep["state"], string> = {
 };
 
 /** Bloque «Ahora»: el único paso resaltado, con listón (como ActionCard, sin trazo: ya lo lleva la sección). */
-function NowBlock({ n, now, className = "" }: { n: number | null; now: Now; className?: string }) {
+function NowBlock({ n, now, exchangeId, className = "" }: { n: number | null; now: Now; exchangeId: string; className?: string }) {
   return (
     <div
       className={`liston flex flex-col gap-3 rounded-tarjeta p-4 [--liston-x:24px] sm:p-5 lg:flex-row lg:items-center lg:gap-5 lg:p-6 lg:[--liston-x:40px] ${TONE_BG[now.tone]} ${className}`}
@@ -172,10 +190,10 @@ function NowBlock({ n, now, className = "" }: { n: number | null; now: Now; clas
           <p className="text-sm leading-snug lg:text-[15px]">{now.text}</p>
         </div>
       </div>
-      {now.external ? (
-        <DotButton href={now.href} target="_blank" rel="noopener noreferrer" variant="tinta" size="sm" icon="send" full="mobile" className="lg:mr-16">
+      {now.announce ? (
+        <AnnounceLink exchangeId={exchangeId} href={now.href} track dot className="lg:mr-16">
           {now.cta}
-        </DotButton>
+        </AnnounceLink>
       ) : (
         <DotButton href={now.href} variant="tinta" size="sm" full="mobile" transitionTypes={FWD} className="lg:mr-16">
           {now.cta}
@@ -225,7 +243,7 @@ function MyPart({ exchange, owner, unread, className = "" }: Pick<Props, "exchan
 
 /**
  * «Tus pendientes» arriba del panel: un solo paso «Ahora» resaltado, los hechos con ✓ y los bloqueados
- * atenuados con el motivo. Móvil: barra de segmentos + bloque «Ahora» + lista. Escritorio: 4–5 mosaicos + «Ahora» | Mi parte.
+ * atenuados con el motivo. Móvil: barra de segmentos + bloque «Ahora» + lista. Escritorio: 5–6 mosaicos + «Ahora» | Mi parte.
  */
 export function OwnerSteps(props: Props) {
   const { exchange, owner, total } = props;
@@ -234,6 +252,7 @@ export function OwnerSteps(props: Props) {
   const steps = ownerSteps({
     participates,
     drawn,
+    announced: Boolean(exchange.announcedAt),
     total,
     wishCount: owner?.wishCount ?? 0,
     revealed: Boolean(owner?.revealed),
@@ -277,22 +296,24 @@ export function OwnerSteps(props: Props) {
         {/* Escritorio: mosaicos. */}
         <ol className="hidden gap-2.5 lg:grid" style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}>
           {steps.map((s, i) => (
-            <li key={s.key} aria-current={s.state === "current" ? "step" : undefined} className={`flex min-h-24 flex-col gap-1.5 rounded-2xl p-3.5 ${TILE[s.state]}`}>
-              <StepDot n={i + 1} state={s.state} size="sm" />
-              <span className="text-sm leading-tight font-medium">
-                {details[i].title}
-                {s.state === "done" && <span className="sr-only"> ({t("ui.stepDone")})</span>}
-              </span>
-              <span className="flex items-center gap-1 text-xs text-gris">
-                {s.state === "locked" && <LockIcon size={12} />}
-                {details[i].sub}
-              </span>
+            <li key={s.key} aria-current={s.state === "current" ? "step" : undefined} className={`flex min-h-24 rounded-2xl ${TILE[s.state]}`}>
+              <TileBody href={s.state === "done" || s.state === "locked" ? undefined : details[i].href}>
+                <StepDot n={i + 1} state={s.state} size="sm" />
+                <span className="text-sm leading-tight font-medium">
+                  {details[i].title}
+                  {s.state === "done" && <span className="sr-only"> ({t("ui.stepDone")})</span>}
+                </span>
+                <span className="flex items-center gap-1 text-xs text-gris">
+                  {s.state === "locked" && <LockIcon size={12} />}
+                  {details[i].sub}
+                </span>
+              </TileBody>
             </li>
           ))}
         </ol>
 
         <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch">
-          {now && <NowBlock n={current ? currentIndex + 1 : null} now={now} className="lg:flex-[2]" />}
+          {now && <NowBlock n={current ? currentIndex + 1 : null} now={now} exchangeId={exchange.id} className="lg:flex-[2]" />}
           <MyPart {...props} className="hidden lg:flex lg:flex-1" />
         </div>
 
