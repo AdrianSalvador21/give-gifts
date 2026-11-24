@@ -89,12 +89,15 @@ export const getOwnerName = cache(async (exchange: Exchange): Promise<string> =>
   return (user.data()?.displayName as string | undefined) ?? "";
 });
 
-/** Deseos de un participante: favoritos primero, luego en el orden en que se agregaron. */
-export const getWishes = cache(async (exchangeId: string, participantId: string): Promise<Wish[]> => {
+/**
+ * Deseos de un participante, del más nuevo al más viejo. Con `favoritesFirst` (lo que ve quien regala)
+ * los marcados «La quiero más» van arriba.
+ */
+export const getWishes = cache(async (exchangeId: string, participantId: string, favoritesFirst = false): Promise<Wish[]> => {
   await live();
-  const snap = await wishesCol(exchangeId, participantId).orderBy("createdAt", "asc").limit(MAX_WISHES).get();
+  const snap = await wishesCol(exchangeId, participantId).orderBy("createdAt", "desc").limit(MAX_WISHES).get();
   const wishes = snap.docs.map(toWish);
-  return [...wishes.filter((w) => w.favorite), ...wishes.filter((w) => !w.favorite)];
+  return favoritesFirst ? [...wishes.filter((w) => w.favorite), ...wishes.filter((w) => !w.favorite)] : wishes;
 });
 
 /** Asignaciones del sorteo. Solo se llama cuando quien ve tiene derecho (p. ej. ownerSeesMap). */

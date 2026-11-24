@@ -131,7 +131,7 @@ export function DrawForm({ exchangeId, people, exclusions }: { exchangeId: strin
           </p>
         )}
         <DotButton
-          variant="coral"
+          variant="pasto"
           full
           size="lg"
           disabled={drawing || pending}

@@ -72,7 +72,7 @@ export function MineList({ owned }: { owned: ExchangeSummary[] }) {
         <ul className="flex flex-col gap-2.5">
           {shown.map((x) => {
             const cal = calendarParts(x.eventAt);
-            const tone = x.role === "owner" ? "bg-pasto" : x.status === "drawn" && !x.revealed ? "bg-coral" : "bg-sol";
+            const tone = x.role === "owner" ? "bg-pasto" : x.status === "drawn" && !x.revealed ? "bg-tinta text-white" : "bg-sol";
             return (
               <li key={x.key}>
                 <Link href={x.href} className="flex items-center gap-3.5 rounded-[20px] bg-white p-3.5">

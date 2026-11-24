@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { BrandBar, MineLink } from "@/components/ui/BrandBar";
 import { CopyButton } from "@/components/ui/CopyButton";
 import { DotButton } from "@/components/ui/DotButton";
 import { Pill } from "@/components/ui/primitives";
@@ -53,7 +54,8 @@ async function Ready({ params }: { params: Promise<{ exchangeId: string }> }) {
 export default function ListoPage({ params }: PageProps<"/crear/listo/[exchangeId]">) {
   return (
     <div className="flex min-h-dvh flex-col bg-pasto px-5 pb-0">
-      <Image src="/illustrations/web/07-invitar.webp" width={845} height={612} alt={t("ready.alt")} priority className="mx-auto mt-7 h-[190px] w-auto" />
+      <BrandBar action={<MineLink />} className="mx-auto w-full max-w-[440px] pt-2" />
+      <Image src="/illustrations/web/07-invitar.webp" width={845} height={612} alt={t("ready.alt")} priority className="mx-auto mt-2 h-[190px] w-auto" />
       <h1 className="mt-2 text-center text-[40px] leading-none font-medium tracking-[-0.05em]">
         {t("ready.title1")}
         <br />

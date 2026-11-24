@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { Suspense } from "react";
+import { BrandBar } from "@/components/ui/BrandBar";
 import { Screen, ScreenTitle, TopBar } from "@/components/ui/primitives";
 import { requireParticipant } from "@/lib/data/access";
 import { getParticipants } from "@/lib/data/exchanges";
@@ -16,6 +17,7 @@ async function EnvelopePage({ params }: { params: Promise<{ inviteCode: string; 
   if (exchange.status !== "drawn") {
     return (
       <>
+        <BrandBar className="pt-2" />
         <TopBar backHref={base} backLabel={t("envelope.back")} title={exchange.name} />
         <Image src="/illustrations/web/08-esperando.webp" width={845} height={385} alt="" className="mx-auto mt-10 mb-3 h-[150px] w-auto" />
         <ScreenTitle>{t("envelope.notDrawnTitle")}</ScreenTitle>
@@ -28,6 +30,7 @@ async function EnvelopePage({ params }: { params: Promise<{ inviteCode: string; 
   const opened = participants.filter((p) => p.revealed).length;
   return (
     <>
+      <BrandBar className="pt-2" />
       <TopBar backHref={base} backLabel={t("envelope.back")} title={exchange.name} />
       <Envelope
         inviteCode={inviteCode}

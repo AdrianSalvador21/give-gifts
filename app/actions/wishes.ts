@@ -7,7 +7,7 @@ import { db, getByToken, MAX_WISHES, participantsCol, wishesCol } from "@/lib/da
 import type { ParticipantDoc, WishDoc } from "@/lib/data/types";
 import { fetchLinkMetadata } from "@/lib/metadata";
 
-type WishError = "empty" | "title" | "note" | "price" | "full" | "generic";
+type WishError = "empty" | "title" | "note" | "price" | "url" | "full" | "generic";
 type Result = { ok: true } | { ok: false; error: WishError };
 
 function looksLikeUrl(text: string): boolean {
@@ -54,6 +54,8 @@ const updateSchema = z.object({
   note: z.string().trim().max(200).nullable().optional(),
   price: z.number().positive().max(1_000_000).nullable().optional(),
   favorite: z.boolean().optional(),
+  // "" o null quita el link; un texto nuevo se normaliza y se valida abajo.
+  url: z.string().trim().max(2000).nullable().optional(),
 });
 
 export async function updateWish(inviteCode: string, token: string, wishId: string, changes: z.input<typeof updateSchema>): Promise<Result> {
@@ -62,10 +64,31 @@ export async function updateWish(inviteCode: string, token: string, wishId: stri
   const parsed = updateSchema.safeParse(changes);
   if (!parsed.success) {
     const field = String(parsed.error.issues[0]?.path[0] ?? "");
-    return { ok: false, error: field === "title" || field === "note" || field === "price" ? field : "generic" };
+    return { ok: false, error: field === "title" || field === "note" || field === "price" || field === "url" ? field : "generic" };
   }
-  const data = { ...parsed.data, ...(parsed.data.note === "" ? { note: null } : {}) };
+  const { url: rawUrl, ...rest } = parsed.data;
+  const data: Partial<WishDoc> = { ...rest, ...(rest.note === "" ? { note: null } : {}) };
   const ref = wishesCol(found.exchange.id, found.me.id).doc(wishId);
+
+  if (rawUrl !== undefined) {
+    const current = await ref.get();
+    if (!current.exists) return { ok: false, error: "generic" };
+    const before = current.data() as WishDoc;
+    if (!rawUrl) {
+      // Sin link ya no hay tienda ni foto de esa tienda.
+      Object.assign(data, { url: null, store: null, imageUrl: null });
+    } else {
+      if (!looksLikeUrl(rawUrl)) return { ok: false, error: "url" };
+      const meta = await fetchLinkMetadata(/^https?:\/\//i.test(rawUrl) ? rawUrl : `https://${rawUrl}`);
+      if (!meta) return { ok: false, error: "url" };
+      // Solo si el link cambió: el título que escribió la persona se respeta; foto y tienda vienen del link.
+      if (meta.url !== before.url) {
+        Object.assign(data, { url: meta.url, store: meta.store, imageUrl: meta.imageUrl });
+        if (data.price === undefined && before.price == null && meta.price != null) data.price = meta.price;
+      }
+    }
+  }
+
   try {
     await ref.update(data);
   } catch {

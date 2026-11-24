@@ -11,6 +11,7 @@ const LINKS = [
   { href: "#listas", label: t("nav.lists") },
   { href: "#secreto", label: t("nav.privacy") },
   { href: "/mis-intercambios", label: t("nav.mine") },
+  { href: "/entrar?next=/mis-intercambios", label: t("nav.signIn") },
 ];
 
 /**

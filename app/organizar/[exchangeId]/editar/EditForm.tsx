@@ -94,7 +94,7 @@ export function EditForm({ exchangeId, initial, drawn }: { exchangeId: string; i
         </div>
       </fieldset>
 
-      <div className="grid grid-cols-[1.4fr_1fr] gap-2.5">
+      <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-[1.4fr_1fr] sm:gap-2.5">
         <TextField id="e-date" type="date" min={today} label={t("create.s3.date")} value={form.date} onChange={(e) => set("date", e.target.value)} error={err("date")} />
         <TextField id="e-time" type="time" label={t("create.s3.time")} value={form.time} onChange={(e) => set("time", e.target.value)} />
       </div>

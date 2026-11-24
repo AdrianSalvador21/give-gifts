@@ -3,6 +3,7 @@ import Image from "next/image";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { DotButton } from "@/components/ui/DotButton";
+import { BrandBar } from "@/components/ui/BrandBar";
 import { Screen, ScreenTitle, TopBar } from "@/components/ui/primitives";
 import { requireParticipant } from "@/lib/data/access";
 import { getOwnerName, getParticipants } from "@/lib/data/exchanges";
@@ -22,6 +23,7 @@ async function Bought({ params }: { params: Promise<{ inviteCode: string; token:
 
   return (
     <>
+      <BrandBar className="pt-2" />
       <TopBar backHref={base} title={exchange.name} />
       <Image src="/illustrations/web/12-ya-compre.webp" width={603} height={549} alt={t("bought.alt")} priority className="mx-auto mt-6 h-[220px] w-auto" />
       <ScreenTitle className="mt-4">{t("bought.title")}</ScreenTitle>
@@ -35,7 +37,7 @@ async function Bought({ params }: { params: Promise<{ inviteCode: string; token:
       </div>
 
       <div className="mt-3 flex items-center gap-3.5 rounded-[20px] bg-white p-4">
-        <span className="flex size-[58px] shrink-0 flex-col items-center justify-center rounded-[14px] bg-coral leading-none">
+        <span className="flex size-[58px] shrink-0 flex-col items-center justify-center rounded-[14px] bg-pasto leading-none">
           <span className="text-[11px] font-medium">{cal.month}</span>
           <span className="text-2xl font-medium">{cal.day}</span>
         </span>

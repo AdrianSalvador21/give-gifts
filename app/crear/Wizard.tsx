@@ -107,7 +107,7 @@ export function Wizard({ initialName, ownerName }: { initialName: string; ownerN
 
   return (
     <div className="flex flex-1 flex-col">
-      <div className="flex items-center justify-between pt-4">
+      <div className="flex items-center justify-between pt-1">
         {step === 1 ? (
           <Link href="/" aria-label={t("create.home")} className="grid size-11 place-items-center rounded-full bg-white">
             <BackIcon />
@@ -197,7 +197,7 @@ export function Wizard({ initialName, ownerName }: { initialName: string; ownerN
         {step === 3 && (
           <div className="flex flex-col gap-3.5 pt-6">
             <ScreenTitle className="mb-1">{t("create.s3.title")}</ScreenTitle>
-            <div className="grid grid-cols-[1.4fr_1fr] gap-2.5">
+            <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-[1.4fr_1fr] sm:gap-2.5">
               <TextField id="c-date" type="date" min={today} label={t("create.s3.date")} value={form.date} onChange={(e) => set("date", e.target.value)} error={err("date")} />
               <TextField id="c-time" type="time" label={t("create.s3.time")} value={form.time} onChange={(e) => set("time", e.target.value)} />
             </div>

@@ -22,9 +22,9 @@ export type GroupRowData = {
 const TONE: Record<GroupRowData["pills"][number]["tone"], string> = {
   pasto: "bg-pasto",
   arena: "bg-arena",
-  cielo: "bg-cielo",
+  cielo: "bg-tinta text-white",
   sol: "bg-sol",
-  "coral-outline": "border border-coral text-[#B23A2A]",
+  "coral-outline": "border border-tinta",
 };
 
 export function GroupRow({ row, exchangeId, canRemove }: { row: GroupRowData; exchangeId: string; canRemove: boolean }) {

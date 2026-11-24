@@ -38,7 +38,7 @@ export function Envelope({ inviteCode, token, base, meta, progress, mailboxEnabl
             </p>
           )}
           <DotButton
-            variant="coral"
+            variant="pasto"
             full
             disabled={pending}
             onClick={() =>
@@ -70,7 +70,7 @@ export function Envelope({ inviteCode, token, base, meta, progress, mailboxEnabl
 
   return (
     <div className="flex flex-1 flex-col pt-5">
-      <div className="flex flex-col gap-2 rounded-panel bg-coral px-6 py-[30px]" aria-live="polite">
+      <div className="flex flex-col gap-2 rounded-panel bg-pasto px-6 py-[30px]" aria-live="polite">
         <span className="text-base font-medium">{t("envelope.givesTo")}</span>
         <span className="text-[clamp(44px,15vw,64px)] leading-[0.95] font-medium tracking-[-0.06em] break-words">{opened.name}</span>
         <span className="text-[15px]">{meta}</span>

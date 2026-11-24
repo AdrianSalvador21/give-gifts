@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { listMessages, sendMessage } from "@/app/actions/mailbox";
 import { SendIcon } from "@/components/ui/icons";
-import type { MailboxMessage, MailboxRole } from "@/lib/data/gifts";
+import type { MailboxMessage, MailboxRole, Unread } from "@/lib/data/gifts";
 import { TIME_ZONE } from "@/lib/format";
 import { t } from "@/lib/i18n";
 
@@ -15,6 +15,8 @@ type Props = {
   token: string;
   receiverName: string | null; // null si todavía no abre su sobre: entonces solo ve la pestaña de su amigo secreto
   initial: Record<MailboxRole, MailboxMessage[]>;
+  initialRole: MailboxRole;
+  initialUnread: Unread;
 };
 
 function time(iso: string) {
@@ -25,9 +27,10 @@ function time(iso: string) {
 }
 
 /** P3. Dos pestañas: como quien regala («Tu persona») y como quien recibe («Tu amigo secreto»). */
-export function Mailbox({ inviteCode, token, receiverName, initial }: Props) {
-  const [role, setRole] = useState<MailboxRole>(receiverName ? "giver" : "receiver");
+export function Mailbox({ inviteCode, token, receiverName, initial, initialRole, initialUnread }: Props) {
+  const [role, setRole] = useState<MailboxRole>(initialRole);
   const [messages, setMessages] = useState(initial);
+  const [unread, setUnread] = useState(initialUnread);
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -38,7 +41,10 @@ export function Mailbox({ inviteCode, token, receiverName, initial }: Props) {
     let timer: ReturnType<typeof setInterval> | undefined;
     const poll = async () => {
       const res = await listMessages(inviteCode, token, role);
-      if (res.ok) setMessages((m) => ({ ...m, [role]: res.messages }));
+      if (res.ok) {
+        setMessages((m) => ({ ...m, [role]: res.messages }));
+        setUnread(res.unread);
+      }
     };
     const startPolling = () => {
       clearInterval(timer);
@@ -48,12 +54,15 @@ export function Mailbox({ inviteCode, token, receiverName, initial }: Props) {
       if (document.visibilityState === "visible") poll();
       startPolling();
     };
+    // Al cambiar de pestaña se lee de inmediato (y queda marcada como leída).
+    if (role !== initialRole || unread[role] > 0) poll();
     startPolling();
     document.addEventListener("visibilitychange", onVisibility);
     return () => {
       clearInterval(timer);
       document.removeEventListener("visibilitychange", onVisibility);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al cambiar de pestaña, no con cada contador
   }, [inviteCode, token, role]);
 
   const list = messages[role];
@@ -76,10 +85,17 @@ export function Mailbox({ inviteCode, token, receiverName, initial }: Props) {
               onClick={() => {
                 setRole(r);
                 setError(null);
+                setUnread((u) => ({ ...u, [r]: 0 }));
               }}
-              className={`h-11 rounded-[10px] text-[15px] font-medium ${role === r ? "bg-tinta text-white" : ""}`}
+              className={`flex h-11 items-center justify-center gap-2 rounded-[10px] text-[15px] font-medium ${role === r ? "bg-tinta text-white" : ""}`}
             >
               {r === "giver" ? t("mailbox.tabPerson") : t("mailbox.tabFriend")}
+              {role !== r && unread[r] > 0 && (
+                <span className="grid h-5 min-w-5 place-items-center rounded-full bg-pasto px-1.5 text-xs font-semibold text-tinta">
+                  <span className="sr-only">{unread[r] === 1 ? t("mailbox.unreadLabelOne") : t("mailbox.unreadLabel", { n: unread[r] })}</span>
+                  <span aria-hidden>{unread[r]}</span>
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -90,7 +106,7 @@ export function Mailbox({ inviteCode, token, receiverName, initial }: Props) {
           <span className="text-[17px] font-medium">{isGiver ? receiverName : t("mailbox.friendName")}</span>
           <span className="text-[13px] text-gris">{isGiver ? t("mailbox.personSub") : t("mailbox.friendSub")}</span>
         </div>
-        <span aria-hidden className={`grid size-9 place-items-center rounded-full ${isGiver ? "bg-cielo" : "bg-lila"}`}>
+        <span aria-hidden className={`grid size-9 place-items-center rounded-full ${isGiver ? "bg-tinta text-white" : "bg-pasto"}`}>
           <SendIcon size={16} />
         </span>
       </div>
@@ -103,7 +119,7 @@ export function Mailbox({ inviteCode, token, receiverName, initial }: Props) {
           <div
             key={m.id}
             className={`max-w-[78%] px-4 py-3 text-base leading-snug break-words whitespace-pre-wrap ${
-              m.mine ? "self-end rounded-[20px_20px_6px_20px] bg-cielo" : "self-start rounded-[20px_20px_20px_6px] bg-white"
+              m.mine ? "self-end rounded-[20px_20px_6px_20px] bg-tinta text-white" : "self-start rounded-[20px_20px_20px_6px] bg-white"
             }`}
           >
             {m.text}
@@ -124,6 +140,7 @@ export function Mailbox({ inviteCode, token, receiverName, initial }: Props) {
             if (res.ok) {
               setText("");
               setMessages((m) => ({ ...m, [role]: res.messages }));
+              setUnread(res.unread);
             } else {
               setError(t(`mailbox.errors.${res.error === "empty" || res.error === "long" || res.error === "closed" ? res.error : "generic"}`));
             }

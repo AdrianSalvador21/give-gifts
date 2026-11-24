@@ -135,8 +135,8 @@ export default function LandingPage() {
         </section>
 
         {/* CTA FINAL */}
-        <section className="mx-4 mt-16 flex flex-col items-center gap-8 rounded-hoja bg-pasto sm:mt-24 px-6 pt-24 pb-[120px] text-center">
-          <h2 className="text-[clamp(60px,10vw,144px)] leading-[0.95] font-medium tracking-[-0.06em]">
+        <section className="mx-4 mt-16 flex flex-col items-center gap-8 rounded-hoja bg-pasto sm:mt-24 px-6 pt-20 pb-[120px] text-center">
+          <h2 className="text-[clamp(40px,9vw,130px)] leading-[0.95] font-medium tracking-[-0.06em]">
             {t("landing.final.titleLine1")}
             <br />
             {t("landing.final.titleLine2")}
