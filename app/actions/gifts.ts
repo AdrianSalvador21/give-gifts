@@ -69,3 +69,20 @@ export async function markBought(inviteCode: string, token: string, desde?: unkn
   if (fail) return fail;
   redirect(withDesde(`/i/${inviteCode}/p/${token}/compre`, parseDesde(desde)));
 }
+
+/** «Deshacer, aún no lo compro»: revierte markBought. Si sale bien redirige a /persona (conservando `?desde=`). */
+export async function unmarkBought(inviteCode: string, token: string, desde?: unknown): Promise<Fail> {
+  const fail = await guard<Fail | null>("unmarkBought", GENERIC, async () => {
+    const found = await getByToken(inviteCode, token);
+    if (!found) return { ok: false, error: "not-found" };
+    const { exchange, me } = found;
+    if (exchange.status !== "drawn") return { ok: false, error: "not-drawn" };
+    if (me.bought) {
+      await participantsCol(exchange.id).doc(me.id).update({ bought: false });
+      await exchangesCol().doc(exchange.id).update({ updatedAt: FieldValue.serverTimestamp() });
+    }
+    return null;
+  });
+  if (fail) return fail;
+  redirect(withDesde(`/i/${inviteCode}/p/${token}/persona`, parseDesde(desde)));
+}

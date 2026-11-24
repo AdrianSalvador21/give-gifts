@@ -59,7 +59,7 @@ export default function PrivacidadPage() {
             <strong>Listas de deseos:</strong> títulos, links, imágenes, precios y notas que cada participante agrega.
           </li>
           <li>
-            <strong>Mensajes del buzón anónimo</strong> entre cada persona y su amigo secreto.
+            <strong>Mensajes del buzón anónimo</strong> entre quien regala y quien recibe.
           </li>
           <li>
             <strong>Datos técnicos:</strong> cookies de sesión y de dispositivo (ver sección 8) y los registros que generan nuestros proveedores de
@@ -77,7 +77,7 @@ export default function PrivacidadPage() {
         <ul>
           <li>Crear y administrar tu cuenta de organizador y tu sesión.</li>
           <li>Crear el intercambio, registrar a los participantes y hacer el sorteo secreto.</li>
-          <li>Mostrar a cada persona su link personal, su lista, la lista de su amigo secreto y el buzón anónimo.</li>
+          <li>Mostrar a cada persona su link personal, su lista, la lista de la persona a quien le regala y el buzón anónimo.</li>
           <li>Prevenir abusos, resolver fallas y mantener la seguridad del servicio.</li>
           <li>Atender tus dudas y solicitudes de derechos ARCO.</li>
         </ul>

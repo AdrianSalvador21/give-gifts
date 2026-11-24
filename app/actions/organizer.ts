@@ -69,7 +69,7 @@ export type RemoveAfterDrawResult = { ok: true } | { ok: false; error: "not-draw
 
 /**
  * Quita a alguien después del sorteo (I1). En el ciclo A→X→B basta con reconectar A→B: solo cambia la persona de A,
- * que queda marcada con `assignmentChangedAt` para que su inicio le avise. B conserva a su amigo secreto… que ahora es A.
+ * que queda marcada con `assignmentChangedAt` para que su inicio le avise. A B ahora le regala A.
  * Se borran los deseos, el token, las exclusiones y los hilos del buzón de X (A→X y X→B); se crea el hilo A→B.
  * Para no delatar a A ante quien organiza, no se tocan `revealed` ni `bought` de A (el aviso se lo explica a A).
  */
@@ -172,6 +172,23 @@ export async function setRegistrationOpen(exchangeId: string, open: boolean): Pr
     if (exchange.status !== "open") return { ok: false, error: "closed" };
     await exchangesCol().doc(exchange.id).update({ registrationOpen: open, updatedAt: FieldValue.serverTimestamp() });
     refresh();
+    return { ok: true };
+  });
+}
+
+/**
+ * «Avisar al grupo» después del sorteo: guarda `announcedAt` para que «Avísale al grupo» quede hecho en «Tus pendientes».
+ * Se llama al tocar el botón de WhatsApp (sin esperar la respuesta: WhatsApp se abre igual).
+ */
+export async function markAnnounced(exchangeId: string): Promise<{ ok: true } | { ok: false; error: "not-drawn" | "generic" }> {
+  return guard<{ ok: true } | { ok: false; error: "not-drawn" | "generic" }>("markAnnounced", GENERIC, async () => {
+    const exchange = await ownedExchange(exchangeId);
+    if (!exchange) return GENERIC;
+    if (exchange.status !== "drawn") return { ok: false, error: "not-drawn" };
+    if (!exchange.announcedAt) {
+      await exchangesCol().doc(exchange.id).update({ announcedAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() });
+      refresh();
+    }
     return { ok: true };
   });
 }

@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { UndoBoughtButton } from "@/app/i/[inviteCode]/p/[token]/persona/GiftActions";
 import { BrandBar } from "@/components/ui/BrandBar";
 import { Confetti } from "@/components/ui/Confetti";
 import { DotButton } from "@/components/ui/DotButton";
@@ -7,6 +8,7 @@ import { ProgressRing } from "@/components/ui/ProgressRing";
 import type { Exchange } from "@/lib/data/types";
 import { calendarHref, calendarParts, formatEvent } from "@/lib/format";
 import { t } from "@/lib/i18n";
+import type { Desde } from "@/lib/nav";
 import { BackLink } from "./ParticipantTop";
 
 export type BoughtData = {
@@ -18,6 +20,8 @@ export type BoughtData = {
   total: number;
   /** Nombres (de pila) de quienes faltan por comprar. No revela asignaciones: solo quién no ha marcado «ya compré». */
   missing: string[];
+  /** Para «Deshacer, aún no lo compro» (vuelve a /persona con el mismo `?desde=`). */
+  undo: { inviteCode: string; token: string; desde: Desde | null };
 };
 
 function missingText(names: string[]): string {
@@ -28,7 +32,7 @@ function missingText(names: string[]): string {
 }
 
 /** ¡Regalo comprado!: split sol con confeti; anillo de avance del grupo y la fecha a la derecha. */
-export function BoughtView({ exchange, back, text, bought, total, missing }: BoughtData) {
+export function BoughtView({ exchange, back, text, bought, total, missing, undo }: BoughtData) {
   const tz = exchange.timeZone;
   const cal = calendarParts(exchange.eventAt, tz);
   const [day, time] = formatEvent(exchange.eventAt, tz).split(" · ");
@@ -93,6 +97,7 @@ export function BoughtView({ exchange, back, text, bought, total, missing }: Bou
           {t("bought.mine")}
         </DotButton>
       </div>
+      <UndoBoughtButton {...undo} className="mt-3" />
     </SplitShell>
   );
 }

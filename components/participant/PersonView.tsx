@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { BoughtButton, PlanButton } from "@/app/i/[inviteCode]/p/[token]/persona/GiftActions";
+import { BoughtButton, PlanButton, UndoBoughtButton } from "@/app/i/[inviteCode]/p/[token]/persona/GiftActions";
 import { Alert } from "@/components/ui/Alert";
 import { DotButton } from "@/components/ui/DotButton";
 import { EmptySlot } from "@/components/ui/EmptySlots";
@@ -61,14 +61,17 @@ export function PersonView({ exchange, me, receiverName, plannedWishId, wishes, 
             </DotButton>
           )}
           {me.bought ? (
-            <Link
-              href={withDesde(`${base}/compre`, desde)}
-              transitionTypes={["nav-forward"]}
-              className="flex h-[60px] items-center justify-center gap-2 rounded-boton bg-pasto-50 text-lg font-medium no-underline transition-transform active:scale-[0.99]"
-            >
-              <CheckIcon size={18} />
-              {t("person.boughtDone")}
-            </Link>
+            <>
+              <Link
+                href={withDesde(`${base}/compre`, desde)}
+                transitionTypes={["nav-forward"]}
+                className="flex h-[60px] items-center justify-center gap-2 rounded-boton bg-pasto-50 text-lg font-medium no-underline transition-transform active:scale-[0.99]"
+              >
+                <CheckIcon size={18} />
+                {t("person.boughtDone")}
+              </Link>
+              <UndoBoughtButton inviteCode={inviteCode} token={token} desde={desde} />
+            </>
           ) : (
             <BoughtButton inviteCode={inviteCode} token={token} desde={desde} />
           )}

@@ -38,6 +38,8 @@ export type ExchangeDoc = {
   timeZone?: string;
   // «Cerrar inscripciones» antes del sorteo. Sin el campo = abiertas.
   registrationOpen?: boolean;
+  // Quien organiza tocó «Avisar al grupo» después del sorteo. Sin el campo (o null) = aún no avisa.
+  announcedAt?: Timestamp | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 };
@@ -94,10 +96,11 @@ export type MessageDoc = { from: "giver" | "receiver"; text: string; createdAt: 
 
 /* ---------- Formas serializables que viajan a componentes ---------- */
 
-export type Exchange = Omit<ExchangeDoc, "eventAt" | "drawnAt" | "createdAt" | "updatedAt" | "timeZone" | "registrationOpen"> & {
+export type Exchange = Omit<ExchangeDoc, "eventAt" | "drawnAt" | "createdAt" | "updatedAt" | "timeZone" | "registrationOpen" | "announcedAt"> & {
   id: string;
   eventAt: string; // ISO
   drawnAt: string | null;
+  announcedAt: string | null; // ISO; null = aún no avisa al grupo del sorteo
   timeZone: string; // siempre presente (con valor por defecto)
   registrationOpen: boolean;
 };

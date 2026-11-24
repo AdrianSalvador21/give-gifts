@@ -17,6 +17,8 @@ export type OwnerProgress = {
   /** Participa en el sorteo (rules.ownerParticipates y existe su participante). */
   participates: boolean;
   drawn: boolean;
+  /** Ya tocó «Avisar al grupo» después del sorteo (exchange.announcedAt). */
+  announced: boolean;
   /** Personas apuntadas. */
   total: number;
   wishCount: number;
@@ -26,10 +28,11 @@ export type OwnerProgress = {
 
 /**
  * Pasos en orden. Antes del sorteo el «actual» es el primero pendiente (lista → invitar → sortear);
- * después, el del sobre/regalo (o avisar al grupo si no participa). Solo uno queda como `current`.
+ * después, primero avisar al grupo (los participantes esperan ese aviso) y luego el sobre/regalo.
+ * Solo uno queda como `current`.
  */
 export function ownerSteps(p: OwnerProgress): OwnerStep[] {
-  // Después del sorteo, con al menos una idea ya cuenta: su amigo secreto ya tiene de dónde escoger.
+  // Después del sorteo, con al menos una idea ya cuenta: quien le regala ya tiene de dónde escoger.
   const listDone = p.wishCount >= LIST_GOAL || (p.drawn && p.wishCount > 0);
   const inviteDone = p.drawn || p.total >= MIN_TO_DRAW;
   const steps: { key: OwnerStepKey; done: boolean; locked: boolean }[] = [
@@ -37,12 +40,13 @@ export function ownerSteps(p: OwnerProgress): OwnerStep[] {
     ...(p.participates ? [{ key: "list" as const, done: listDone, locked: false }] : []),
     { key: "invite", done: inviteDone, locked: false },
     { key: "draw", done: p.drawn, locked: !p.drawn && p.total < MIN_TO_DRAW },
-    p.participates ? { key: "gift" as const, done: p.bought, locked: !p.drawn } : { key: "announce" as const, done: false, locked: !p.drawn },
+    { key: "announce", done: p.drawn && p.announced, locked: !p.drawn },
+    ...(p.participates ? [{ key: "gift" as const, done: p.bought, locked: !p.drawn }] : []),
   ];
 
-  // Después del sorteo, una lista corta ya no bloquea: lo urgente es el sobre (o avisar).
+  // Después del sorteo, una lista corta ya no bloquea: lo urgente es avisar al grupo y luego el sobre.
   const current = p.drawn
-    ? (steps.find((s) => (s.key === "gift" || s.key === "announce") && !s.done) ?? steps.find((s) => !s.done))
+    ? (steps.find((s) => (s.key === "announce" || s.key === "gift") && !s.done) ?? steps.find((s) => !s.done))
     : steps.find((s) => !s.done && !s.locked);
 
   return steps.map((s) => ({ key: s.key, state: s.done ? "done" : s === current ? "current" : s.locked ? "locked" : "todo" }));

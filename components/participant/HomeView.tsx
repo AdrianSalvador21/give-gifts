@@ -73,8 +73,14 @@ const ART = {
   fiesta: { src: "/illustrations/web/05-fiesta.webp", w: 1200, h: 802 },
 } satisfies Record<string, Art>;
 
+/** Ya se sorteó y su lista sigue vacía: quien le regala no tiene de dónde escoger, así que la lista va primero. */
+function needsListAfterDraw({ exchange, me }: Pick<HomeData, "exchange" | "me">): boolean {
+  return exchange.status === "drawn" && me.wishCount === 0 && !me.bought;
+}
+
 function artFor({ exchange, me }: HomeData): Art {
   if (exchange.status !== "drawn") return me.wishCount < 3 ? ART.lista : ART.espera;
+  if (needsListAfterDraw({ exchange, me })) return ART.lista;
   if (!me.revealed) return ART.sobre;
   if (!me.bought) return ART.comprar;
   return exchange.rules.mailboxEnabled ? ART.buzon : ART.fiesta;
@@ -118,6 +124,31 @@ function NextAction({ exchange, me, owner, unread, base }: HomeData) {
           <DotButton href={`${base}/lista`} variant="blanco" transitionTypes={FWD}>
             {t("home.editList")}
           </DotButton>
+        }
+      />
+    );
+  }
+
+  if (needsListAfterDraw({ exchange, me })) {
+    // «Abrir mi sobre» (o «Ver a mi persona») sigue a un toque, como acción secundaria.
+    const second = me.revealed ? { href: `${base}/persona`, label: t("home.seePerson") } : { href: `${base}/sobre`, label: t("home.openEnvelope") };
+    return (
+      <ActionCard
+        {...CARD}
+        eyebrow={t("home.nextStep")}
+        title={t("home.emptyDrawnTitle")}
+        text={t("home.emptyDrawnText")}
+        art={art(ART.lista)}
+        progress={<IdeaSegments n={0} />}
+        action={
+          <div className="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+            <DotButton href={`${base}/lista`} variant="blanco" transitionTypes={FWD}>
+              {t("home.fillList")}
+            </DotButton>
+            <Link href={second.href} transitionTypes={FWD} className="inline-flex min-h-11 items-center self-start font-medium underline underline-offset-4 sm:self-center">
+              {second.label}
+            </Link>
+          </div>
         }
       />
     );
@@ -191,18 +222,24 @@ function NextAction({ exchange, me, owner, unread, base }: HomeData) {
 function stepsFor({ exchange, me, owner }: HomeData): StepItem[] {
   const drawn = exchange.status === "drawn";
   const hasList = me.wishCount > 0;
+  // Igual que la tarjeta principal: después del sorteo, una lista vacía es lo actual (y lo demás espera).
+  const listFirst = needsListAfterDraw({ exchange, me });
   return [
     { title: t("home.step1"), state: "done" },
     {
       title: hasList ? (me.wishCount === 1 ? t("home.step2DoneOne") : t("home.step2Done", { n: me.wishCount })) : t("home.step2"),
       hint: hasList ? undefined : t("home.step2Hint"),
-      state: hasList ? "done" : drawn ? "todo" : "current",
+      state: hasList ? "done" : drawn && !listFirst ? "todo" : "current",
     },
-    { title: t("home.step3"), hint: drawn ? undefined : t("home.step3Hint", { owner }), state: me.revealed ? "done" : drawn ? "current" : "todo" },
+    {
+      title: t("home.step3"),
+      hint: drawn ? undefined : t("home.step3Hint", { owner }),
+      state: me.revealed ? "done" : drawn && !listFirst ? "current" : "todo",
+    },
     {
       title: t("home.step4"),
       hint: t("home.step4Hint", { date: formatShortDate(exchange.eventAt, exchange.timeZone) }),
-      state: me.bought ? "done" : me.revealed ? "current" : "todo",
+      state: me.bought ? "done" : me.revealed && !listFirst ? "current" : "todo",
     },
   ];
 }
@@ -311,7 +348,7 @@ export function HomeView(data: HomeData) {
             </span>
           </Card>
 
-          {/* Sin abrir el sobre también sale si su amigo secreto ya le escribió: si no, el mensaje no se ve en ningún lado. */}
+          {/* Sin abrir el sobre también sale si quien le regala ya le escribió: si no, el mensaje no se ve en ningún lado. */}
           {drawn && (me.revealed || (exchange.rules.mailboxEnabled && unread.giver + unread.receiver > 0)) && (
             <Card className="px-2 py-2 sm:px-2 sm:py-2">
               <Eyebrow as="h2" className="px-3 pt-2 pb-1">

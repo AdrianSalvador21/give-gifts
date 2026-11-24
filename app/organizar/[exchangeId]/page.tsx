@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { AddAssistedForm } from "@/components/organizer/AddAssistedForm";
+import { AnnounceLink } from "@/components/organizer/AnnounceLink";
 import { GroupRow, type GroupRowData } from "@/components/organizer/GroupRow";
 import { OwnerSteps } from "@/components/organizer/OwnerSteps";
 import { PanelOptions } from "@/components/organizer/PanelOptions";
@@ -93,7 +94,7 @@ async function Panel({ params }: { params: Promise<{ exchangeId: string }> }) {
   }));
 
   const announce = drawn
-    ? t("panel.drawnAnnounceText", { exchange: exchange.name, date: formatShortDate(exchange.eventAt, tz) })
+    ? t("panel.drawnAnnounceText", { exchange: exchange.name, date: formatShortDate(exchange.eventAt, tz), link: inviteLink })
     : t("panel.announceText", { name: exchange.name, date: formatEvent(exchange.eventAt, tz), n: total, link: inviteLink });
   const announceHref = whatsappHref(announce);
   const stats = drawn
@@ -165,10 +166,10 @@ async function Panel({ params }: { params: Promise<{ exchangeId: string }> }) {
                 <SettingsIcon size={18} />
                 {t("panel.editRules")}
               </Link>
-              <a href={announceHref} target="_blank" rel="noopener noreferrer" className={ghostButton}>
+              <AnnounceLink exchangeId={exchange.id} href={announceHref} track={drawn} className={ghostButton}>
                 <MegaphoneIcon size={18} />
                 {t("panel.announce")}
-              </a>
+              </AnnounceLink>
             </div>
           </div>
 
@@ -210,10 +211,10 @@ async function Panel({ params }: { params: Promise<{ exchangeId: string }> }) {
               ))}
             </ul>
 
-            <a href={announceHref} target="_blank" rel="noopener noreferrer" className={`${ghostButton} lg:hidden`}>
+            <AnnounceLink exchangeId={exchange.id} href={announceHref} track={drawn} className={`${ghostButton} lg:hidden`}>
               <MegaphoneIcon size={18} />
               {t("panel.announce")}
-            </a>
+            </AnnounceLink>
 
             {drawn && !exchange.rules.ownerSeesMap && (
               <p className="rounded-boton border-2 border-dashed border-punteado px-4 py-3.5 text-sm leading-snug text-gris">{t("panel.mapHidden")}</p>

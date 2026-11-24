@@ -13,15 +13,16 @@ import { backTarget, parseDesde } from "@/lib/nav";
 export const metadata: Metadata = { title: "¡Regalo comprado!", robots: { index: false } };
 
 async function Bought({ params, searchParams }: { params: Promise<{ inviteCode: string; token: string }>; searchParams: Promise<{ desde?: string | string[] }> }) {
-  const [{ exchange, me, base }, { desde }] = await Promise.all([requireParticipant(params), searchParams]);
-  const back = backTarget({ desde: parseDesde(desde), isOwner: me.kind === "owner", base, exchangeId: exchange.id });
+  const [{ exchange, me, base, inviteCode, token }, sp] = await Promise.all([requireParticipant(params), searchParams]);
+  const desde = parseDesde(sp.desde);
+  const back = backTarget({ desde, isOwner: me.kind === "owner", base, exchangeId: exchange.id });
   if (exchange.status !== "drawn" || !me.bought) redirect(back.href);
   const [participants, owner] = await Promise.all([getParticipants(exchange.id), getOwnerName(exchange)]);
   const bought = participants.filter((p) => p.bought).length;
   const missing = participants.filter((p) => !p.bought).map((p) => p.name.split(" ")[0]);
   const text = me.kind === "owner" ? t("bought.textOwner") : t("bought.text", { owner: owner.split(" ")[0] || "Quien organiza" });
 
-  return <BoughtView exchange={exchange} back={back} text={text} bought={bought} total={participants.length} missing={missing} />;
+  return <BoughtView exchange={exchange} back={back} text={text} bought={bought} total={participants.length} missing={missing} undo={{ inviteCode, token, desde }} />;
 }
 
 export default function ComprePage({ params, searchParams }: PageProps<"/i/[inviteCode]/p/[token]/compre">) {

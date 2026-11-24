@@ -23,7 +23,7 @@ export async function getMyAssignment(exchangeId: string, giverId: string): Prom
 
 /**
  * El hilo del buzón según el papel de quien pregunta: como "giver" es el hilo con su persona;
- * como "receiver" es el hilo con su amigo secreto. El id de quien regala nunca sale de aquí.
+ * como "receiver" es el hilo con quien le regala. El id de quien regala nunca sale de aquí.
  */
 export async function getThreadRef(exchangeId: string, meId: string, role: MailboxRole): Promise<DocumentReference | null> {
   await connection();

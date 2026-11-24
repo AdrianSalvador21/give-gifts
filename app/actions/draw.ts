@@ -90,7 +90,7 @@ export async function runDraw(exchangeId: string): Promise<Result> {
           unreadReceiver: 0,
         });
       }
-      tx.update(exchangeRef, { status: "drawn", drawnAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() });
+      tx.update(exchangeRef, { status: "drawn", drawnAt: FieldValue.serverTimestamp(), announcedAt: null, updatedAt: FieldValue.serverTimestamp() });
       return null;
     });
     if (error) return { ok: false, error };
@@ -127,7 +127,7 @@ export async function redoDraw(exchangeId: string, opts?: { confirm?: boolean })
     // 2) Reabrir y limpiar el avance de cada quien.
     const batch = db().batch();
     participants.docs.forEach((d) => batch.update(d.ref, { revealed: false, bought: false, assignmentChangedAt: null }));
-    batch.update(exchangeRef, { status: "open", drawnAt: null, updatedAt: FieldValue.serverTimestamp() });
+    batch.update(exchangeRef, { status: "open", drawnAt: null, announcedAt: null, updatedAt: FieldValue.serverTimestamp() });
     await batch.commit();
     refresh();
     return { ok: true };
