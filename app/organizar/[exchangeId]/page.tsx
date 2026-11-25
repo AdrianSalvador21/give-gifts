@@ -6,6 +6,8 @@ import { AnnounceLink } from "@/components/organizer/AnnounceLink";
 import { GroupRow, type GroupRowData } from "@/components/organizer/GroupRow";
 import { OwnerSteps } from "@/components/organizer/OwnerSteps";
 import { PanelOptions } from "@/components/organizer/PanelOptions";
+import { IdeasRequestedCard, ListUpdatedCard } from "@/components/participant/Nudges";
+import { AddToCalendar } from "@/components/ui/AddToCalendar";
 import { Alert } from "@/components/ui/Alert";
 import { AppShell } from "@/components/ui/AppShell";
 import { BrandBar } from "@/components/ui/BrandBar";
@@ -15,7 +17,9 @@ import { Avatar, Card, Eyebrow, ScreenTitle } from "@/components/ui/primitives";
 import { StatTile } from "@/components/ui/StatTile";
 import { PageTransition } from "@/components/ui/Transitions";
 import { getAssignments, getExclusions, getPanelParticipants } from "@/lib/data/exchanges";
-import { getUnread } from "@/lib/data/gifts";
+import { getMyAssignment, getUnread } from "@/lib/data/gifts";
+import { getNudges } from "@/lib/data/nudges";
+import { exchangeCalendar } from "@/lib/calendar";
 import { requireOwnedExchange } from "@/lib/data/owner";
 import type { Exchange, PanelParticipant } from "@/lib/data/types";
 import { appUrl, formatEvent, formatMoney, formatShortDate, whatsappHref } from "@/lib/format";
@@ -65,6 +69,12 @@ async function Panel({ params }: { params: Promise<{ exchangeId: string }> }) {
   // No leídos del buzón de quien organiza (el mismo helper que usa su inicio personal).
   const ownerUnread = owner && drawn && exchange.rules.mailboxEnabled ? await getUnread(exchange.id, owner.id, owner.revealed) : null;
   const unread = ownerUnread ? ownerUnread.giver + ownerUnread.receiver : 0;
+  // Avisos secretos de quien organiza como participante (SPEC 03). Solo los suyos: nunca los de los demás.
+  const ownerNudges = owner?.path && drawn ? await getNudges(exchange, owner) : null;
+  const ownerKey = owner?.path ? { inviteCode: exchange.inviteCode, token: owner.path.split("/").pop() ?? "" } : null;
+  const ownerReceiver =
+    owner && ownerNudges?.listNudgePending && owner.revealed ? ((await getMyAssignment(exchange.id, owner.id))?.receiver.name ?? null) : null;
+  const calendar = exchangeCalendar(exchange, appUrl(`/organizar/${exchange.id}`));
 
   const rows: GroupRowData[] = participants.map((p) => ({
     id: p.id,
@@ -160,8 +170,23 @@ async function Panel({ params }: { params: Promise<{ exchangeId: string }> }) {
               <p className="mt-2 text-[15px] text-gris lg:text-lg">
                 {[formatEvent(exchange.eventAt, tz), exchange.place, t("panel.budget", { budget: formatMoney(exchange.budget.amount) })].filter(Boolean).join(" · ")}
               </p>
+              <AddToCalendar
+                icsHref={`/organizar/${exchange.id}/calendario`}
+                googleHref={calendar.google}
+                summary={`${exchange.name} · ${formatEvent(exchange.eventAt, tz)}`}
+                role="owner"
+                variant="link"
+                className="lg:hidden"
+              />
             </div>
             <div className="hidden shrink-0 gap-2 lg:flex">
+              <AddToCalendar
+                icsHref={`/organizar/${exchange.id}/calendario`}
+                googleHref={calendar.google}
+                summary={`${exchange.name} · ${formatEvent(exchange.eventAt, tz)}`}
+                role="owner"
+                variant="fantasma"
+              />
               <Link href={`/organizar/${exchange.id}/editar`} transitionTypes={["nav-forward"]} className={ghostButton}>
                 <SettingsIcon size={18} />
                 {t("panel.editRules")}
@@ -174,6 +199,21 @@ async function Panel({ params }: { params: Promise<{ exchangeId: string }> }) {
           </div>
 
           {!drawn && !exchange.registrationOpen && <Alert tone="info">{t("panel.registrationClosed")}</Alert>}
+
+          {ownerKey && ownerNudges && (ownerNudges.ideasPending || ownerNudges.listNudgePending) && owner?.path && (
+            <div className="grid gap-3 lg:grid-cols-2 lg:gap-4">
+              {ownerNudges.ideasPending && <IdeasRequestedCard {...ownerKey} href={`${owner.path}/lista`} layout="panel" />}
+              {ownerNudges.listNudgePending && (
+                <ListUpdatedCard
+                  {...ownerKey}
+                  href={owner.revealed ? `${owner.path}/persona` : `${owner.path}/sobre`}
+                  layout="panel"
+                  name={ownerReceiver}
+                  revealed={owner.revealed}
+                />
+              )}
+            </div>
+          )}
 
           <OwnerSteps exchange={exchange} owner={owner?.path ? owner : null} total={total} unread={unread} announceHref={announceHref} />
 

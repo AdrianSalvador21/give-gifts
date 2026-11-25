@@ -50,7 +50,7 @@ export function toExchange(snap: DocumentSnapshot): Exchange {
 /** Sin token: el link personal nunca viaja en los datos de las páginas (ver toPanelParticipant). */
 export function toParticipant(snap: DocumentSnapshot): Participant {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { joinedAt, nameKey, token, linkResetAt, linkResets, assignmentChangedAt, ...rest } = snap.data() as ParticipantDoc;
+  const { joinedAt, nameKey, token, linkResetAt, linkResets, assignmentChangedAt, listUpdatedAt, ...rest } = snap.data() as ParticipantDoc;
   return {
     ...rest,
     id: snap.id,
@@ -58,6 +58,7 @@ export function toParticipant(snap: DocumentSnapshot): Participant {
     linkResetAt: linkResetAt ? linkResetAt.toDate().toISOString() : null,
     linkResets: linkResets ?? 0,
     assignmentChangedAt: assignmentChangedAt ? assignmentChangedAt.toDate().toISOString() : null,
+    listUpdatedAt: listUpdatedAt ? listUpdatedAt.toDate().toISOString() : null,
   };
 }
 
@@ -65,8 +66,8 @@ export function toParticipant(snap: DocumentSnapshot): Participant {
 export const personalPath = (inviteCode: string, token: string) => `/i/${inviteCode}/p/${token}`;
 
 export function toWish(snap: DocumentSnapshot): Wish {
-  const d = snap.data() as WishDoc;
-  return { ...d, id: snap.id, createdAt: d.createdAt?.toDate().toISOString() ?? "" };
+  const { createdAt, updatedAt, ...d } = snap.data() as WishDoc;
+  return { ...d, id: snap.id, createdAt: createdAt?.toDate().toISOString() ?? "", updatedAt: updatedAt ? updatedAt.toDate().toISOString() : null };
 }
 
 export const getExchange = cache(async (exchangeId: string): Promise<Exchange | null> => {

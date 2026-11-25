@@ -11,6 +11,7 @@ import type { Exchange, Participant, Wish } from "@/lib/data/types";
 import { formatDateTime, formatMoney } from "@/lib/format";
 import { t } from "@/lib/i18n";
 import { withDesde, type Desde } from "@/lib/nav";
+import { AskIdeasButton, MarkListSeen, WishTag } from "./Nudges";
 import { wishMeta, WishThumb } from "./WishDisplay";
 
 export type PersonData = {
@@ -25,17 +26,23 @@ export type PersonData = {
   base: string;
   /** Origen de la navegación: se propaga a Buzón y Compré para que «atrás» vuelva ahí. */
   desde: Desde | null;
+  /** «Pedirle ideas en secreto»: si se puede ahora o desde cuándo. */
+  canAsk: { ok: boolean; nextAt: string | null };
+  /** Deseos agregados («new») o editados («changed») desde la última visita. */
+  tags: Record<string, "new" | "changed">;
 };
 
 /**
  * Tu persona: ficha fija a la izquierda (lg) con el nombre y las acciones; su lista en rejilla a la derecha.
  * En móvil el orden es ficha → lista → acciones (el <aside> se vuelve `contents` para reordenar sus hijos).
  */
-export function PersonView({ exchange, me, receiverName, plannedWishId, wishes, unread, inviteCode, token, base, desde }: PersonData) {
+export function PersonView({ exchange, me, receiverName, plannedWishId, wishes, unread, inviteCode, token, base, desde, canAsk, tags }: PersonData) {
   const mailbox = exchange.rules.mailboxEnabled;
+  const ask = { inviteCode, token, receiverName, canAsk, timeZone: exchange.timeZone };
 
   return (
     <Columns layout="ficha" className="mt-3 lg:mt-6">
+      <MarkListSeen inviteCode={inviteCode} token={token} />
       <StickyPanel as="aside" className="contents lg:flex lg:flex-col lg:gap-4">
         <Card variant="protagonista" tone="pasto" ribbon="sol" className="order-1 flex flex-col gap-1 pr-16 lg:order-none lg:p-7 lg:pr-20">
           <span className="text-sm font-medium">{t("person.givesTo")}</span>
@@ -60,6 +67,7 @@ export function PersonView({ exchange, me, receiverName, plannedWishId, wishes, 
               </span>
             </DotButton>
           )}
+          {wishes.length > 0 && <AskIdeasButton {...ask} />}
           {me.bought ? (
             <>
               <Link
@@ -91,9 +99,12 @@ export function PersonView({ exchange, me, receiverName, plannedWishId, wishes, 
           <>
             <Card className="mt-3 flex flex-col items-center p-5 text-center lg:mt-5 lg:flex-row lg:gap-6 lg:p-6 lg:text-left">
               <Image src="/illustrations/web/10-lista-vacia.webp" width={783} height={582} alt="" loading="eager" className="h-[110px] w-auto lg:h-[130px]" />
-              <div className="flex flex-col">
-                <p className="mt-2 text-base font-medium lg:mt-0 lg:text-lg">{t("person.empty")}</p>
-                <p className="mt-1 text-sm text-gris">{t("person.emptyText")}</p>
+              <div className="flex w-full flex-col items-center gap-3 lg:items-start">
+                <div className="flex flex-col">
+                  <p className="mt-2 text-base font-medium lg:mt-0 lg:text-lg">{t("person.empty")}</p>
+                  <p className="mt-1 text-sm text-gris">{canAsk.ok ? t("nudge.askText") : t("person.emptyText")}</p>
+                </div>
+                <AskIdeasButton {...ask} primary />
               </div>
             </Card>
             <Columns layout="deseos" as="ul" className="escalonado mt-4" aria-hidden>
@@ -119,6 +130,11 @@ export function PersonView({ exchange, me, receiverName, plannedWishId, wishes, 
                   <div className="flex items-start gap-3">
                     <WishThumb wish={w} index={i} />
                     <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                      {tags[w.id] && (
+                        <span className="mb-0.5">
+                          <WishTag tag={tags[w.id]} />
+                        </span>
+                      )}
                       <span className="text-[15px] leading-snug font-medium">{w.title}</span>
                       <span className="text-[13px] text-gris">
                         {wishMeta(w)}

@@ -4,12 +4,20 @@ import type { Wish } from "@/lib/data/types";
 import { t } from "@/lib/i18n";
 import { AddWishForm } from "./AddWishForm";
 import { EmptyListSlots, WishGridFillers } from "./ListFillers";
+import { IdeasBanner, NudgeGiverCard, type CanNudge } from "./Nudges";
 import { WishItem } from "./WishItem";
 
-export type ListData = { wishes: Wish[]; max: number; inviteCode: string; token: string };
+export type ListData = {
+  wishes: Wish[];
+  max: number;
+  inviteCode: string;
+  token: string;
+  /** Después del sorteo (y antes del evento): «Avisarle que ya está» y, si me pidieron ideas, el aviso. */
+  nudge?: { ideasPending: boolean; canNudge: CanNudge; timeZone: string } | null;
+};
 
 /** Mi lista: formulario fijo a la izquierda (lg) y la rejilla de deseos con huecos punteados a la derecha. */
-export function ListView({ wishes, max, inviteCode, token }: ListData) {
+export function ListView({ wishes, max, inviteCode, token, nudge }: ListData) {
   const n = wishes.length;
   const empty = n === 0;
   const missing = Math.max(0, 3 - n);
@@ -34,6 +42,13 @@ export function ListView({ wishes, max, inviteCode, token }: ListData) {
         </div>
         <p className="max-w-[440px] text-[15px] leading-snug text-gris lg:text-right">{empty ? t("list.emptyText") : t("list.subtitle")}</p>
       </div>
+
+      {nudge && (
+        <div className="mt-5 flex flex-col gap-3 lg:mt-8 lg:max-w-[620px]">
+          {nudge.ideasPending && <IdeasBanner />}
+          <NudgeGiverCard inviteCode={inviteCode} token={token} canNudge={nudge.canNudge} timeZone={nudge.timeZone} />
+        </div>
+      )}
 
       <Columns layout="formulario" className="mt-5 lg:mt-8">
         <StickyPanel as="aside" className="flex flex-col gap-4">

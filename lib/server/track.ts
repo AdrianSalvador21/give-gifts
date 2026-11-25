@@ -3,7 +3,7 @@ import "server-only";
 import { track } from "@vercel/analytics/server";
 import { after } from "next/server";
 
-export type FunnelEvent = "exchange_created" | "participant_joined" | "draw_completed" | "envelope_opened" | "gift_bought";
+export type FunnelEvent = "exchange_created" | "participant_joined" | "draw_completed" | "envelope_opened" | "gift_bought" | "ideas_requested" | "list_nudged";
 
 /**
  * Evento del embudo (Vercel Web Analytics, eventos personalizados: requieren plan Pro).

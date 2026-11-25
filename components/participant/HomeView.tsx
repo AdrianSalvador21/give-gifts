@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ActionCard } from "@/components/ui/ActionCard";
+import { AddToCalendar } from "@/components/ui/AddToCalendar";
 import { Alert } from "@/components/ui/Alert";
 import { DotButton } from "@/components/ui/DotButton";
 import { ArrowIcon } from "@/components/ui/icons";
@@ -10,8 +11,10 @@ import { StepList, type StepItem } from "@/components/ui/Stepper";
 import { UnreadBadge } from "@/components/ui/UnreadBadge";
 import type { Exchange, Participant } from "@/lib/data/types";
 import type { Unread } from "@/lib/data/gifts";
+import type { Nudges } from "@/lib/data/nudges";
 import { calendarParts, formatDateTime, formatEvent, formatMoney, formatShortDate, whatsappHref } from "@/lib/format";
 import { t } from "@/lib/i18n";
+import { IdeasRequestedCard, ListUpdatedCard } from "./Nudges";
 import { FirstVisitSheet, LinkBox } from "./SaveLink";
 
 /**
@@ -61,6 +64,13 @@ export type HomeData = {
   daysLeft: number;
   /** Solo quien organiza, sin sesión: link a /entrar que vuelve a su panel. */
   ownerSignIn?: string;
+  /** Avisos secretos (SPEC 03) y, si mi persona actualizó su lista y ya abrí el sobre, su nombre. */
+  nudges: Nudges;
+  receiverName: string | null;
+  /** «Agregar a mi calendario»: ruta del .ics personal y link de Google. */
+  calendar: { ics: string; google: string };
+  inviteCode: string;
+  token: string;
 };
 
 type Art = { src: string; w: number; h: number };
@@ -245,7 +255,7 @@ function Shortcut({ href, children }: { href: string; children: ReactNode }) {
 }
 
 export function HomeView(data: HomeData) {
-  const { exchange, me, owner, unread, base, link, nuevo, daysLeft, ownerSignIn } = data;
+  const { exchange, me, owner, unread, base, link, nuevo, daysLeft, ownerSignIn, nudges, receiverName, calendar, inviteCode, token } = data;
   const tz = exchange.timeZone;
   const cal = calendarParts(exchange.eventAt, tz);
   const [day, time] = formatEvent(exchange.eventAt, tz).split(" · ");
@@ -303,6 +313,21 @@ export function HomeView(data: HomeData) {
         </div>
       )}
 
+      {(nudges.ideasPending || nudges.listNudgePending) && (
+        <div className="mt-5 grid gap-3 lg:mt-8 lg:grid-cols-2 lg:gap-4">
+          {nudges.ideasPending && <IdeasRequestedCard inviteCode={inviteCode} token={token} href={`${base}/lista`} />}
+          {nudges.listNudgePending && (
+            <ListUpdatedCard
+              inviteCode={inviteCode}
+              token={token}
+              href={me.revealed ? `${base}/persona` : `${base}/sobre`}
+              name={receiverName}
+              revealed={me.revealed}
+            />
+          )}
+        </div>
+      )}
+
       <Columns layout="home" className="mt-5 lg:mt-8">
         <Steps data={data} className="hidden self-start xl:block" />
 
@@ -312,24 +337,36 @@ export function HomeView(data: HomeData) {
         </div>
 
         <div className="flex flex-col gap-4">
-          <Card className="flex items-center gap-3.5">
-            <DateTile month={cal.month} day={cal.day} tone="cielo" />
-            <span className="flex min-w-0 flex-col gap-0.5">
-              <span className="text-[15px] font-medium">{`${day.charAt(0).toUpperCase()}${day.slice(1)} · ${time}`}</span>
-              <span className="text-[13px] text-gris">
-                {[exchange.place, t("home.budget", { budget: formatMoney(exchange.budget.amount) })].filter(Boolean).join(" · ")}
+          <Card className="flex flex-col gap-3">
+            <div className="flex items-center gap-3.5">
+              <DateTile month={cal.month} day={cal.day} tone="cielo" />
+              <span className="flex min-w-0 flex-col gap-0.5">
+                <span className="text-[15px] font-medium">{`${day.charAt(0).toUpperCase()}${day.slice(1)} · ${time}`}</span>
+                <span className="text-[13px] text-gris">
+                  {[exchange.place, t("home.budget", { budget: formatMoney(exchange.budget.amount) })].filter(Boolean).join(" · ")}
+                </span>
               </span>
-            </span>
+            </div>
+            {daysLeft >= 0 && (
+              <AddToCalendar icsHref={calendar.ics} googleHref={calendar.google} summary={`${exchange.name} · ${formatEvent(exchange.eventAt, tz)}`} role="participant" />
+            )}
           </Card>
 
           {/* Sin abrir el sobre también sale si quien le regala ya le escribió: si no, el mensaje no se ve en ningún lado. */}
-          {drawn && (me.revealed || (exchange.rules.mailboxEnabled && unread.giver + unread.receiver > 0)) && (
+          {drawn && (me.revealed || nudges.ideasPending || (exchange.rules.mailboxEnabled && unread.giver + unread.receiver > 0)) && (
             <Card className="px-2 py-2 sm:px-2 sm:py-2">
               <Eyebrow as="h2" className="px-3 pt-2 pb-1">
                 {t("home.shortcuts")}
               </Eyebrow>
               <ul className="flex flex-col">
-                {me.revealed && <Shortcut href={`${base}/persona`}>{t("home.seePerson")}</Shortcut>}
+                {me.revealed && (
+                  <Shortcut href={`${base}/persona`}>
+                    <span>
+                      {t("home.seePerson")}
+                      <UnreadBadge n={nudges.listNudgePending ? 1 : 0} label={t("nudge.unreadLabel")} />
+                    </span>
+                  </Shortcut>
+                )}
                 {exchange.rules.mailboxEnabled && (
                   <Shortcut href={`${base}/buzon`}>
                     <span>
@@ -338,7 +375,12 @@ export function HomeView(data: HomeData) {
                     </span>
                   </Shortcut>
                 )}
-                <Shortcut href={`${base}/lista`}>{t("home.editList")}</Shortcut>
+                <Shortcut href={`${base}/lista`}>
+                  <span>
+                    {t("home.editList")}
+                    <UnreadBadge n={nudges.ideasPending ? 1 : 0} label={t("nudge.unreadLabel")} />
+                  </span>
+                </Shortcut>
               </ul>
             </Card>
           )}
