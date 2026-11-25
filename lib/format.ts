@@ -135,12 +135,18 @@ export function whatsappHref(text: string): string {
   return `https://wa.me/?text=${encodeURIComponent(text)}`;
 }
 
-/** Link para agregar el evento a Google Calendar (3 horas). Las horas van en UTC y `ctz` muestra la zona del intercambio. */
-export function calendarHref(title: string, iso: string, place: string | null, timeZone?: string | null): string {
-  const start = new Date(iso);
-  const end = new Date(start.getTime() + 3 * 60 * 60 * 1000);
-  const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
-  const params = new URLSearchParams({ action: "TEMPLATE", text: title, dates: `${fmt(start)}/${fmt(end)}`, ctz: zone(timeZone) });
-  if (place) params.set("location", place);
-  return `https://calendar.google.com/calendar/render?${params}`;
+/**
+ * Cuándo se puede volver a mandar un aviso: «hoy a las 21:15» o «mañana a las 18:40» (en la zona del intercambio).
+ * Más lejos: «el 16 dic a las 18:40». `now` se pasa para poder llamarlo en el cliente.
+ */
+export function formatNextAt(iso: string, timeZone?: string | null, now: Date = new Date()): string {
+  const tz = zone(timeZone);
+  const ymd = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
+  const at = new Date(iso);
+  const time = new Intl.DateTimeFormat("es-MX", { timeZone: tz, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(at);
+  const [a, b] = [ymd(now), ymd(at)].map((s) => Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10)));
+  const days = Math.round((b - a) / 86_400_000);
+  if (days <= 0) return `hoy a las ${time}`;
+  if (days === 1) return `mañana a las ${time}`;
+  return `el ${formatShortDate(iso, timeZone)} a las ${time}`;
 }

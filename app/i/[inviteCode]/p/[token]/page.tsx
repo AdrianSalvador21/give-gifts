@@ -10,7 +10,9 @@ import { PageTransition } from "@/components/ui/Transitions";
 import { getOrganizer } from "@/lib/auth/session";
 import { requireParticipant } from "@/lib/data/access";
 import { getOwnerName } from "@/lib/data/exchanges";
-import { getUnread } from "@/lib/data/gifts";
+import { getMyAssignment, getUnread } from "@/lib/data/gifts";
+import { getNudges } from "@/lib/data/nudges";
+import { exchangeCalendar } from "@/lib/calendar";
 import { appUrl } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Tu intercambio", robots: { index: false } };
@@ -24,10 +26,14 @@ async function Home({ params, searchParams }: { params: Promise<{ inviteCode: st
   if (isOwner && organizer?.uid === exchange.ownerUid) redirect(`/organizar/${exchange.id}`);
 
   const drawnWithMailbox = exchange.status === "drawn" && exchange.rules.mailboxEnabled;
-  const [owner, unread] = await Promise.all([
+  const [owner, unread, nudges] = await Promise.all([
     getOwnerName(exchange),
     drawnWithMailbox ? getUnread(exchange.id, me.id, me.revealed) : { giver: 0, receiver: 0 },
+    getNudges(exchange, me),
   ]);
+  // «{nombre} actualizó su lista» solo si ya abrió el sobre (antes, el nombre no sale del servidor).
+  const receiverName = nudges.listNudgePending && me.revealed ? ((await getMyAssignment(exchange.id, me.id))?.receiver.name ?? null) : null;
+  const calendar = { ics: `${base}/calendario`, google: exchangeCalendar(exchange, appUrl(base)).google };
 
   return (
     <>
@@ -36,6 +42,11 @@ async function Home({ params, searchParams }: { params: Promise<{ inviteCode: st
       <HomeView
         exchange={exchange} me={me} owner={owner} unread={unread} base={base} link={appUrl(base)} nuevo={Boolean(nuevo)}
         daysLeft={daysUntil(exchange.eventAt, exchange.timeZone)}
+        nudges={nudges}
+        receiverName={receiverName}
+        calendar={calendar}
+        inviteCode={inviteCode}
+        token={token}
         ownerSignIn={isOwner ? `/entrar?next=${encodeURIComponent(`/organizar/${exchange.id}`)}` : undefined}
       />
     </>

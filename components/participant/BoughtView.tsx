@@ -6,7 +6,8 @@ import { DotButton } from "@/components/ui/DotButton";
 import { Card, DateTile, HandNote, ScreenTitle, SplitShell } from "@/components/ui/primitives";
 import { ProgressRing } from "@/components/ui/ProgressRing";
 import type { Exchange } from "@/lib/data/types";
-import { calendarHref, calendarParts, formatEvent } from "@/lib/format";
+import { googleCalendarHref } from "@/lib/calendar";
+import { calendarParts, formatEvent } from "@/lib/format";
 import { t } from "@/lib/i18n";
 import type { Desde } from "@/lib/nav";
 import { BackLink } from "./ParticipantTop";
@@ -78,7 +79,7 @@ export function BoughtView({ exchange, back, text, bought, total, missing, undo 
           {exchange.place && <span className="truncate text-sm text-gris">{exchange.place}</span>}
         </span>
         <a
-          href={calendarHref(exchange.name, exchange.eventAt, exchange.place, tz)}
+          href={googleCalendarHref({ title: exchange.name, startIso: exchange.eventAt, place: exchange.place, timeZone: tz })}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex min-h-11 shrink-0 items-center rounded-[12px] bg-crema px-3.5 text-[13px] font-medium no-underline transition-transform active:scale-95"

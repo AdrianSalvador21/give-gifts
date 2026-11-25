@@ -49,8 +49,9 @@ export async function addWish(inviteCode: string, token: string, rawInput: strin
     const full = await db().runTransaction(async (tx) => {
       const snap = await tx.get(meRef);
       if ((snap.data() as ParticipantDoc).wishCount >= MAX_WISHES) return true;
-      tx.create(wishesCol(exchange.id, me.id).doc(), { ...wish, createdAt: FieldValue.serverTimestamp() });
-      tx.update(meRef, { wishCount: FieldValue.increment(1) });
+      const now = FieldValue.serverTimestamp();
+      tx.create(wishesCol(exchange.id, me.id).doc(), { ...wish, createdAt: now, updatedAt: now });
+      tx.update(meRef, { wishCount: FieldValue.increment(1), listUpdatedAt: now });
       return false;
     });
     if (full) return { ok: false, error: "full" };
@@ -105,7 +106,9 @@ export async function updateWish(inviteCode: string, token: string, wishId: stri
       }
     }
 
-    await ref.update(data);
+    // updatedAt marca el deseo como «Cambió» para quien regala; listUpdatedAt reactiva «Recordar».
+    const now = FieldValue.serverTimestamp();
+    await Promise.all([ref.update({ ...data, updatedAt: now }), participantsCol(found.exchange.id).doc(found.me.id).update({ listUpdatedAt: now })]);
     refresh();
     return { ok: true };
   });
@@ -125,7 +128,7 @@ export async function deleteWish(inviteCode: string, token: string, wishId: stri
       const [snap, assignments] = await Promise.all([tx.get(ref), tx.get(planned)]);
       if (!snap.exists) return;
       tx.delete(ref);
-      tx.update(meRef, { wishCount: FieldValue.increment(-1) });
+      tx.update(meRef, { wishCount: FieldValue.increment(-1), listUpdatedAt: FieldValue.serverTimestamp() });
       assignments.docs.filter((a) => a.data().receiverId === me.id).forEach((a) => tx.update(a.ref, { plannedWishId: null }));
     });
     refresh();

@@ -59,12 +59,25 @@ export type ParticipantDoc = {
   linkResets?: number;
   // Su persona cambió porque quitaron a alguien después del sorteo. Se le muestra al participante.
   assignmentChangedAt?: Timestamp | null;
+  // Última vez que agregó, editó o borró un deseo («Recordar» solo se activa si cambió desde el último aviso).
+  listUpdatedAt?: Timestamp | null;
 };
 
 export type TokenDoc = { exchangeId: string; participantId: string };
 export type InviteDoc = { exchangeId: string };
 export type ExclusionDoc = { a: string; b: string };
-export type AssignmentDoc = { receiverId: string; plannedWishId: string | null };
+export type AssignmentDoc = {
+  receiverId: string;
+  plannedWishId: string | null;
+  // «Pedirle ideas» (quien regala → quien recibe): última petición (límite de 24 h) y si quien recibe aún no la atiende.
+  ideasAskedAt?: Timestamp | null;
+  ideasPending?: boolean;
+  // «Recordar» (quien recibe → quien regala): último aviso y si quien regala aún no lo ve.
+  listNudgedAt?: Timestamp | null;
+  listNudgePending?: boolean;
+  // Última vez que quien regala abrió «Tu persona» (para las etiquetas «Nuevo» y «Cambió»).
+  giverSeenListAt?: Timestamp | null;
+};
 
 export type WishDoc = {
   title: string;
@@ -75,6 +88,8 @@ export type WishDoc = {
   note: string | null;
   favorite: boolean;
   createdAt: Timestamp;
+  // Se pone al agregar y al editar; los deseos viejos no lo tienen (se usa createdAt).
+  updatedAt?: Timestamp;
 };
 
 // giverReadAt / receiverReadAt: última vez que cada lado abrió el hilo.
@@ -109,12 +124,13 @@ export type Exchange = Omit<ExchangeDoc, "eventAt" | "drawnAt" | "createdAt" | "
  * Participante tal como viaja a las páginas. Nunca incluye el token: el link personal es la credencial
  * y solo lo conoce su dueño (ver PanelParticipant para lo que sí ve quien organiza).
  */
-export type Participant = Omit<ParticipantDoc, "joinedAt" | "nameKey" | "token" | "linkResetAt" | "linkResets" | "assignmentChangedAt"> & {
+export type Participant = Omit<ParticipantDoc, "joinedAt" | "nameKey" | "token" | "linkResetAt" | "linkResets" | "assignmentChangedAt" | "listUpdatedAt"> & {
   id: string;
   joinedAt: string;
   linkResetAt: string | null; // ISO
   linkResets: number;
   assignmentChangedAt: string | null; // ISO
+  listUpdatedAt: string | null; // ISO
 };
 
 /**
@@ -123,7 +139,7 @@ export type Participant = Omit<ParticipantDoc, "joinedAt" | "nameKey" | "token" 
  */
 export type PanelParticipant = Participant & { path: string | null; link: string | null };
 
-export type Wish = Omit<WishDoc, "createdAt"> & { id: string; createdAt: string };
+export type Wish = Omit<WishDoc, "createdAt" | "updatedAt"> & { id: string; createdAt: string; updatedAt: string | null };
 
 /** Fila de «Mis intercambios»: viene del organizador (sesión) o de un link personal guardado en el navegador. */
 export type ExchangeSummary = {
